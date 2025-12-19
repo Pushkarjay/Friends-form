@@ -1,0 +1,285 @@
+
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>A4 Two-Page Friend Template</title>
+<style>
+body {
+  display: flex;
+  gap: 20px;
+  justify-content: center;
+  background: #f5f5f5;
+  padding: 20px;
+  font-family: Arial, sans-serif;
+}
+.page {
+  width: 210mm;
+  height: 297mm;
+  background: white;
+  border: 2px solid #000;
+  display: flex;
+  flex-direction: column;
+  padding: 10mm;
+  box-sizing: border-box;
+  position: relative;
+}
+.print-area {
+  flex: 1;
+  display: grid;
+  grid-template-rows: 1fr 1fr 1fr;
+  gap: 10px;
+}
+.row-1 {
+  display: grid;
+  grid-template-columns: 1fr 1fr 1fr;
+  border-bottom: 1px solid #aaa;
+}
+.row-1 .box:not(:last-child) {
+  border-right: 1px solid #aaa;
+}
+.row-2 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.row-3 {
+  display: grid;
+  grid-template-columns: 1fr 1fr;
+  gap: 10px;
+}
+.box {
+  border: 1px solid #ccc;
+  padding: 5px 8px;
+  font-size: 12px;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  min-height: 60px;
+  box-sizing: border-box;
+}
+.inline-field {
+  display: flex;
+  align-items: center;
+  margin-bottom: 2px;
+}
+.inline-field label {
+  font-weight: bold;
+  margin-right: 4px;
+}
+.inline-field input {
+  border: none;
+  border-bottom: 1px solid #aaa;
+  font-size: 12px;
+  background: none;
+  width: 90px;
+  margin-right: 8px;
+}
+.photo-box {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  background: #f0f0f0;
+  min-height: 80px;
+  font-weight: bold;
+}
+.print-btn {
+  margin-top: 10px;
+  padding: 8px 12px;
+  border: none;
+  background: black;
+  color: white;
+  cursor: pointer;
+  font-size: 14px;
+}
+@media print {
+  body {
+    background: none;
+    gap: 0;
+    padding: 0;
+  }
+  .page {
+    border: none;
+    box-shadow: none;
+    margin: 0;
+  }
+  .print-btn {
+    display: none;
+  }
+}
+</style>
+</head>
+<body>
+<!-- PAGE 1: Full Data -->
+<div class="page" id="page1">
+  <div class="print-area">
+    <div class="row-1">
+      <div class="box">
+        <div class="inline-field"><label>Name:</label><input type="text" placeholder="Name"></div>
+        <div class="inline-field"><label>DOB:</label><input type="text" placeholder="DDMMYYYY"></div>
+        <div class="inline-field"><label>Phone:</label><input type="text" placeholder="Phone"></div>
+        <div class="inline-field"><label>Alt Phone:</label><input type="text" placeholder="Alt Phone"></div>
+        <div class="inline-field"><label>Email:</label><input type="email" placeholder="Email"></div>
+        <div class="inline-field"><label>Gender:</label><input type="text" placeholder="Gender"></div>
+        <div class="inline-field"><label>Instagram:</label><input type="text" placeholder="Instagram"></div>
+        <div class="inline-field"><label>Facebook:</label><input type="text" placeholder="Facebook"></div>
+        <div class="inline-field"><label>WhatsApp:</label><input type="text" placeholder="WhatsApp"></div>
+        <div class="inline-field"><label>Discord:</label><input type="text" placeholder="Discord"></div>
+      </div>
+      <div class="box photo-box">
+        PHOTO
+      </div>
+      <div class="box">
+        <div class="inline-field"><label>First Meet:</label><input type="text" placeholder="Where/When"></div>
+        <div class="inline-field"><label>Relationship:</label><input type="text" placeholder="Friend/Classmate/etc."></div>
+        <div class="inline-field"><label>Father's Name:</label><input type="text" placeholder="Father's Name"></div>
+        <div class="inline-field"><label>Mother's Name:</label><input type="text" placeholder="Mother's Name"></div>
+        <div class="inline-field"><label>Zodiac Sign:</label><input type="text" placeholder="Zodiac Sign"></div>
+        <div class="inline-field"><label>Best Friend:</label><input type="text" placeholder="Best Friend"></div>
+        <div class="inline-field"><label>Best Memory with Me:</label><input type="text" placeholder="Best Memory"></div>
+      </div>
+    </div>
+    <div class="row-2">
+      <div class="box">
+        <div class="inline-field"><label>8th School:</label><input type="text" placeholder="8th School"></div>
+        <div class="inline-field"><label>10th School:</label><input type="text" placeholder="10th School"></div>
+        <div class="inline-field"><label>12th College:</label><input type="text" placeholder="12th College"></div>
+        <div class="inline-field"><label>12th Stream:</label><input type="text" placeholder="12th Stream"></div>
+        <div class="inline-field"><label>College Name:</label><input type="text" placeholder="College Name"></div>
+        <div class="inline-field"><label>Degree:</label><input type="text" placeholder="Degree"></div>
+        <div class="inline-field"><label>Specialization:</label><input type="text" placeholder="Specialization"></div>
+        <div class="inline-field"><label>College City:</label><input type="text" placeholder="College City"></div>
+      </div>
+      <div class="box">
+        <div class="inline-field"><label>Company Name:</label><input type="text" placeholder="Company Name"></div>
+        <div class="inline-field"><label>Company City:</label><input type="text" placeholder="Company City"></div>
+        <div class="inline-field"><label>Address:</label><input type="text" placeholder="Person's Address"></div>
+        <div class="inline-field"><label>Hobbies:</label><input type="text" placeholder="Hobbies"></div>
+        <div class="inline-field"><label>Food:</label><input type="text" placeholder="Food"></div>
+        <div class="inline-field"><label>Chocolate:</label><input type="text" placeholder="Chocolate"></div>
+        <div class="inline-field"><label>Place:</label><input type="text" placeholder="Place"></div>
+        <div class="inline-field"><label>Colour:</label><input type="text" placeholder="Colour"></div>
+        <div class="inline-field"><label>Sweet:</label><input type="text" placeholder="Sweet"></div>
+        <div class="inline-field"><label>Fruit:</label><input type="text" placeholder="Fruit"></div>
+        <div class="inline-field"><label>Subject:</label><input type="text" placeholder="Subject"></div>
+      </div>
+    </div>
+    <div class="row-3">
+      <div class="box"></div>
+      <div class="box"></div>
+    </div>
+  </div>
+  <button class="print-btn" onclick="printPage('page1')">Print Page 1</button>
+</div>
+<!-- PAGE 2: Correction/Update (only filled values print) -->
+<div class="page" id="page2">
+  <div class="print-area">
+    <div class="row-1">
+      <div class="box">
+        <div class="inline-field"><label>Name:</label><input type="text" placeholder="Name"></div>
+        <div class="inline-field"><label>DOB:</label><input type="text" placeholder="DDMMYYYY"></div>
+        <div class="inline-field"><label>Phone:</label><input type="text" placeholder="Phone"></div>
+        <div class="inline-field"><label>Alt Phone:</label><input type="text" placeholder="Alt Phone"></div>
+        <div class="inline-field"><label>Email:</label><input type="email" placeholder="Email"></div>
+        <div class="inline-field"><label>Gender:</label><input type="text" placeholder="Gender"></div>
+        <div class="inline-field"><label>Instagram:</label><input type="text" placeholder="Instagram"></div>
+        <div class="inline-field"><label>Facebook:</label><input type="text" placeholder="Facebook"></div>
+        <div class="inline-field"><label>WhatsApp:</label><input type="text" placeholder="WhatsApp"></div>
+        <div class="inline-field"><label>Discord:</label><input type="text" placeholder="Discord"></div>
+      </div>
+      <div class="box photo-box">
+        PHOTO
+      </div>
+      <div class="box">
+        <div class="inline-field"><label>First Meet:</label><input type="text" placeholder="Where/When"></div>
+        <div class="inline-field"><label>Relationship:</label><input type="text" placeholder="Friend/Classmate/etc."></div>
+        <div class="inline-field"><label>Father's Name:</label><input type="text" placeholder="Father's Name"></div>
+        <div class="inline-field"><label>Mother's Name:</label><input type="text" placeholder="Mother's Name"></div>
+        <div class="inline-field"><label>Zodiac Sign:</label><input type="text" placeholder="Zodiac Sign"></div>
+        <div class="inline-field"><label>Best Friend:</label><input type="text" placeholder="Best Friend"></div>
+        <div class="inline-field"><label>Best Memory with Me:</label><input type="text" placeholder="Best Memory"></div>
+      </div>
+    </div>
+    <div class="row-2">
+      <div class="box">
+        <div class="inline-field"><label>8th School:</label><input type="text" placeholder="8th School"></div>
+        <div class="inline-field"><label>10th School:</label><input type="text" placeholder="10th School"></div>
+        <div class="inline-field"><label>12th College:</label><input type="text" placeholder="12th College"></div>
+        <div class="inline-field"><label>12th Stream:</label><input type="text" placeholder="12th Stream"></div>
+        <div class="inline-field"><label>College Name:</label><input type="text" placeholder="College Name"></div>
+        <div class="inline-field"><label>Degree:</label><input type="text" placeholder="Degree"></div>
+        <div class="inline-field"><label>Specialization:</label><input type="text" placeholder="Specialization"></div>
+        <div class="inline-field"><label>College City:</label><input type="text" placeholder="College City"></div>
+      </div>
+      <div class="box">
+        <div class="inline-field"><label>Company Name:</label><input type="text" placeholder="Company Name"></div>
+        <div class="inline-field"><label>Company City:</label><input type="text" placeholder="Company City"></div>
+        <div class="inline-field"><label>Address:</label><input type="text" placeholder="Person's Address"></div>
+        <div class="inline-field"><label>Hobbies:</label><input type="text" placeholder="Hobbies"></div>
+        <div class="inline-field"><label>Food:</label><input type="text" placeholder="Food"></div>
+        <div class="inline-field"><label>Chocolate:</label><input type="text" placeholder="Chocolate"></div>
+        <div class="inline-field"><label>Place:</label><input type="text" placeholder="Place"></div>
+        <div class="inline-field"><label>Colour:</label><input type="text" placeholder="Colour"></div>
+        <div class="inline-field"><label>Sweet:</label><input type="text" placeholder="Sweet"></div>
+        <div class="inline-field"><label>Fruit:</label><input type="text" placeholder="Fruit"></div>
+        <div class="inline-field"><label>Subject:</label><input type="text" placeholder="Subject"></div>
+      </div>
+    </div>
+    <div class="row-3">
+      <div class="box"></div>
+      <div class="box"></div>
+    </div>
+  </div>
+  <button class="print-btn" onclick="printPage('page2')">Print Page 2</button>
+</div>
+<script>
+function printPage(pageId) {
+  const page = document.getElementById(pageId);
+  const pages = document.querySelectorAll('.page');
+  pages.forEach(p => p.style.display = 'none');
+  page.style.display = 'block';
+  let hiddenFields = [];
+  if (pageId === 'page2') {
+    // List of mock data to ignore for printing
+    const mockData = [
+      '',
+      'Pushkar Jayaji',
+      '6JULY2005',
+      'Male',
+      'Insta, FB, WA',
+      'Brightline School',
+      'Classmate',
+      'Sri Chaitanya',
+      'Sri Chaitanya Jr. College',
+      'NPC',
+      'Kirtan University',
+      'Bhubaneswar',
+      'B.Tech',
+      'Computer Science',
+      'Deloitte',
+      'Hyderabad'
+    ];
+    const fields = page.querySelectorAll('.inline-field');
+    fields.forEach(field => {
+      const input = field.querySelector('input');
+      if (!input.value || mockData.includes(input.value.trim())) {
+        field.style.display = 'none';
+        hiddenFields.push(field);
+      } else {
+        field.style.display = 'flex';
+      }
+    });
+  }
+  window.print();
+  // Restore all fields after print
+  if (pageId === 'page2') {
+    hiddenFields.forEach(field => {
+      field.style.display = '';
+    });
+  }
+  pages.forEach(p => p.style.display = 'flex');
+}
+</script>
+</body>
+</html>

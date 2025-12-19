@@ -1,0 +1,939 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friend Profile Template</title>
+    <style>
+        /* General Body and Page Setup */
+        body {
+            background-color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem 0;
+            margin: 0;
+            color: #333;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* A4 Page Styling */
+        .a4-page {
+            width: 21cm;
+            height: 29.7cm;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.15);
+            padding: 0.8cm 0.8cm 0.8cm 2cm;
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Page Content - Rows layout */
+        .page-content {
+            display: flex;
+            flex-direction: column;
+            height: 100%;
+        }
+        
+        /* Row 1: 4 columns with data - auto height based on content */
+        .row-1 {
+            display: flex;
+            border-bottom: 1px solid #ccc;
+        }
+        
+        .column {
+            flex: 1;
+            padding: 4px 6px;
+            border-right: 1px solid #eee;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            min-width: 0;
+        }
+        .column:last-child {
+            border-right: none;
+        }
+        
+        /* Column 1 special layout - Personal Details top, Connection bottom */
+        .column-split {
+            justify-content: flex-start;
+            gap: 8px;
+        }
+        
+        .column-section {
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+        }
+        
+        /* Row 2: 4 photo boxes - flexible height for photos/handwriting */
+        .row-2 {
+            display: flex;
+            height: 6cm;
+            border-bottom: 1px solid #eee;
+        }
+        
+        /* Row 3: Blank for handwriting - remaining space */
+        .row-3 {
+            flex: 1;
+        }
+
+        /* Data Item Styling */
+        h3 {
+            margin: 0 0 2px 0;
+            color: #4a4a4a;
+            font-size: 9px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 1px;
+        }
+
+        .data-item {
+            display: flex;
+            font-size: 8px;
+            align-items: baseline;
+            line-height: 1.1;
+        }
+        
+        .data-item .label {
+            font-weight: bold;
+            min-width: 55px;
+            flex-shrink: 0;
+            font-size: 8px;
+        }
+
+        .data-item .value {
+            border-bottom: 1px dotted #ccc;
+            flex: 1;
+            outline: none;
+            padding: 0px 2px;
+            min-height: 9px;
+            font-size: 8px;
+            word-wrap: break-word;
+            overflow-wrap: break-word;
+            white-space: pre-wrap;
+        }
+
+        .data-item .value:focus {
+            background-color: #f0f8ff;
+        }
+        
+        /* Photo Area in Row 2 - with borders for visual structure */
+        .photo-container {
+            flex: 1;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            cursor: pointer;
+            position: relative;
+            overflow: hidden;
+            border: 1px solid #eee;
+            background-color: #fafafa;
+        }
+
+        .photo-container img {
+            position: absolute;
+            cursor: grab;
+            transform-origin: center center;
+        }
+        .photo-container img:active {
+            cursor: grabbing;
+        }
+        
+        .photo-placeholder {
+            color: #aaa;
+            text-align: center;
+            font-size: 8px;
+            z-index: 1;
+        }
+        
+        /* Photo controls overlay */
+        .photo-controls {
+            position: absolute;
+            bottom: 2px;
+            right: 2px;
+            display: flex;
+            gap: 2px;
+            z-index: 10;
+            opacity: 0;
+            transition: opacity 0.2s;
+        }
+        .photo-container:hover .photo-controls,
+        .main-photo:hover .photo-controls {
+            opacity: 1;
+        }
+        .photo-controls button {
+            width: 18px;
+            height: 18px;
+            border: none;
+            background: rgba(0,0,0,0.6);
+            color: white;
+            cursor: pointer;
+            font-size: 10px;
+            border-radius: 3px;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            padding: 0;
+        }
+        .photo-controls button:hover {
+            background: rgba(0,0,0,0.8);
+        }
+        .photo-controls button.delete-btn {
+            background: rgba(180,0,0,0.7);
+        }
+        .photo-controls button.delete-btn:hover {
+            background: rgba(220,0,0,0.9);
+        }
+        
+        /* Main photo in column 2 - rigid size, border only when photo exists */
+        .main-photo {
+            width: 100%;
+            height: 100%;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            cursor: pointer;
+            overflow: hidden;
+            position: relative;
+        }
+        .main-photo.has-photo {
+            border: 1px solid #ccc;
+        }
+        
+        .main-photo img {
+            position: absolute;
+            cursor: grab;
+            transform-origin: center center;
+        }
+        .main-photo img:active {
+            cursor: grabbing;
+        }
+        
+        /* Hide file inputs */
+        input[type="file"] {
+            display: none;
+        }
+        
+        /* Print Button */
+        .print-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .print-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* ---- PRINT STYLES ---- */
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+                margin: 0;
+            }
+            .main-container, .page-wrapper {
+                display: block;
+                box-shadow: none;
+            }
+            .print-button, .page-wrapper h2 {
+                display: none;
+            }
+            .a4-page {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 0.8cm 0.8cm 0.8cm 2cm;
+                width: 21cm;
+                height: 29.7cm;
+            }
+            
+            /* Preserve same layout in print as screen */
+            .row-2 {
+                height: 6cm;
+            }
+            .row-3 { flex: 1; }
+
+            /* Hide photo placeholder text when printing */
+            .photo-placeholder {
+                display: none !important;
+            }
+            
+            /* Hide photo controls when printing */
+            .photo-controls {
+                display: none !important;
+            }
+            
+            /* Hide empty images (no src or broken) */
+            img[src=""], img:not([src]) {
+                display: none !important;
+            }
+
+            /* Hides the other page when printing one */
+            body.printing-page-1 #page-2-wrapper,
+            body.printing-page-2 #page-1-wrapper {
+                display: none;
+            }
+
+            /* Remove only layout grid borders (row/column separators) */
+            .row-1, .row-2, .row-3 {
+                border-color: transparent !important;
+            }
+            .column {
+                border-right-color: transparent !important;
+            }
+            
+            /* Photo containers - no borders/background in print */
+            .photo-container {
+                border: none !important;
+                background: transparent !important;
+            }
+            
+            /* Main photo - no border in print */
+            .main-photo, .main-photo.has-photo {
+                border: none !important;
+                background: transparent !important;
+            }
+
+            /* For Page 2: print ONLY data values - hide labels/headings but KEEP SPACING */
+            body.printing-page-2 #page2 h3 {
+                visibility: hidden !important;
+            }
+            body.printing-page-2 #page2 .label {
+                visibility: hidden !important;
+            }
+            body.printing-page-2 #page2 .value {
+                border-bottom: none !important;
+            }
+            /* Row 2 photos: handled by JS - show if photo exists */
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <!-- Hidden file inputs -->
+        <input type="file" id="photo-input-main" accept="image/*">
+        <input type="file" id="photo-input-1" accept="image/*">
+        <input type="file" id="photo-input-2" accept="image/*">
+        <input type="file" id="photo-input-3" accept="image/*">
+        <input type="file" id="photo-input-4" accept="image/*">
+        
+        <!-- PAGE 1: TEMPLATE -->
+        <div class="page-wrapper" id="page-1-wrapper">
+            <h2>Page 1: Template (with Labels)</h2>
+            <button class="print-button" onclick="printPage(1)">Print Page 1</button>
+            <div class="a4-page" id="page1">
+                <div class="page-content">
+                    <!-- Row 1: 4 Columns with Data -->
+                    <div class="row-1">
+                        <!-- Column 1: Personal Details + Connection (spaced) -->
+                        <div class="column column-split">
+                            <div class="column-section">
+                                <h3>Personal Details</h3>
+                                <div class="data-item"><span class="label">Name:</span><span class="value" id="name" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">DOB:</span><span class="value" id="dob" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Gender:</span><span class="value" id="gender" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Phone:</span><span class="value" id="phone" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Alt Phone:</span><span class="value" id="alt_phone" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Email:</span><span class="value" id="email" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Social:</span><span class="value" id="social" contenteditable="true"></span></div>
+                            </div>
+                            <div class="column-section">
+                                <h3>Connection</h3>
+                                <div class="data-item"><span class="label">First Meet:</span><span class="value" id="first_meet" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Relation:</span><span class="value" id="relationship" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Father:</span><span class="value" id="father_name" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Mother:</span><span class="value" id="mother_name" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Zodiac:</span><span class="value" id="zodiac" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Best Friend:</span><span class="value" id="best_friend" contenteditable="true"></span></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Column 2: Main Photo -->
+                        <div class="column" style="justify-content: center; align-items: center; padding: 4px;">
+                            <div class="main-photo" id="main-photo-1">
+                                <span class="photo-placeholder" onclick="document.getElementById('photo-input-main').click();">Click to add Photo</span>
+                                <img id="main-pic-1" src="" alt="">
+                                <div class="photo-controls">
+                                    <button onclick="event.stopPropagation(); zoomPhoto('main-pic-1', 0.1);" title="Zoom In">+</button>
+                                    <button onclick="event.stopPropagation(); zoomPhoto('main-pic-1', -0.1);" title="Zoom Out">−</button>
+                                    <button onclick="event.stopPropagation(); resetPhoto('main-pic-1');" title="Reset">↺</button>
+                                    <button onclick="event.stopPropagation(); deletePhoto('main-pic-1');" class="delete-btn" title="Delete">✕</button>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <!-- Column 3: Favorites -->
+                        <div class="column">
+                            <h3>Favorites & More</h3>
+                            <div class="data-item"><span class="label">Hobbies:</span><span class="value" id="hobbies" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Food:</span><span class="value" id="fav_food" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Chocolate:</span><span class="value" id="fav_chocolate" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Movie:</span><span class="value" id="fav_movie" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Song:</span><span class="value" id="fav_song" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Place:</span><span class="value" id="fav_place" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Color:</span><span class="value" id="fav_color" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Actor:</span><span class="value" id="fav_actor" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Actress:</span><span class="value" id="fav_actress" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Fruit:</span><span class="value" id="fav_fruit" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Sweet:</span><span class="value" id="fav_sweet" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Subject:</span><span class="value" id="fav_subject" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Book:</span><span class="value" id="fav_book" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Person:</span><span class="value" id="fav_person" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Dream:</span><span class="value" id="dream_place" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Memory:</span><span class="value" id="memory" contenteditable="true"></span></div>
+                        </div>
+                        
+                        <!-- Column 4: Journey -->
+                        <div class="column">
+                            <h3>Journey</h3>
+                            <div class="data-item"><span class="label">10th:</span><span class="value" id="school_10" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">12th:</span><span class="value" id="school_12" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Stream:</span><span class="value" id="stream_12" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">College:</span><span class="value" id="college_name" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">City:</span><span class="value" id="college_city" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Degree:</span><span class="value" id="degree" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Branch:</span><span class="value" id="college_branch" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Company:</span><span class="value" id="company" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Work City:</span><span class="value" id="company_city" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Address:</span><span class="value" id="address" contenteditable="true"></span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Row 2: 4 Photo Boxes -->
+                    <div class="row-2">
+                        <div class="photo-container">
+                            <span class="photo-placeholder" onclick="document.getElementById('photo-input-1').click();">Click to add Photo</span>
+                            <img id="extra-1-page1" src="" alt="">
+                            <div class="photo-controls">
+                                <button onclick="event.stopPropagation(); zoomPhoto('extra-1-page1', 0.1);" title="Zoom In">+</button>
+                                <button onclick="event.stopPropagation(); zoomPhoto('extra-1-page1', -0.1);" title="Zoom Out">−</button>
+                                <button onclick="event.stopPropagation(); resetPhoto('extra-1-page1');" title="Reset">↺</button>
+                                <button onclick="event.stopPropagation(); deletePhoto('extra-1-page1');" class="delete-btn" title="Delete">✕</button>
+                            </div>
+                        </div>
+                        <div class="photo-container">
+                            <span class="photo-placeholder" onclick="document.getElementById('photo-input-2').click();">Click to add Photo</span>
+                            <img id="extra-2-page1" src="" alt="">
+                            <div class="photo-controls">
+                                <button onclick="event.stopPropagation(); zoomPhoto('extra-2-page1', 0.1);" title="Zoom In">+</button>
+                                <button onclick="event.stopPropagation(); zoomPhoto('extra-2-page1', -0.1);" title="Zoom Out">−</button>
+                                <button onclick="event.stopPropagation(); resetPhoto('extra-2-page1');" title="Reset">↺</button>
+                                <button onclick="event.stopPropagation(); deletePhoto('extra-2-page1');" class="delete-btn" title="Delete">✕</button>
+                            </div>
+                        </div>
+                        <div class="photo-container">
+                            <span class="photo-placeholder" onclick="document.getElementById('photo-input-3').click();">Click to add Photo</span>
+                            <img id="extra-3-page1" src="" alt="">
+                            <div class="photo-controls">
+                                <button onclick="event.stopPropagation(); zoomPhoto('extra-3-page1', 0.1);" title="Zoom In">+</button>
+                                <button onclick="event.stopPropagation(); zoomPhoto('extra-3-page1', -0.1);" title="Zoom Out">−</button>
+                                <button onclick="event.stopPropagation(); resetPhoto('extra-3-page1');" title="Reset">↺</button>
+                                <button onclick="event.stopPropagation(); deletePhoto('extra-3-page1');" class="delete-btn" title="Delete">✕</button>
+                            </div>
+                        </div>
+                        <div class="photo-container">
+                            <span class="photo-placeholder" onclick="document.getElementById('photo-input-4').click();">Click to add Photo</span>
+                            <img id="extra-4-page1" src="" alt="">
+                            <div class="photo-controls">
+                                <button onclick="event.stopPropagation(); zoomPhoto('extra-4-page1', 0.1);" title="Zoom In">+</button>
+                                <button onclick="event.stopPropagation(); zoomPhoto('extra-4-page1', -0.1);" title="Zoom Out">−</button>
+                                <button onclick="event.stopPropagation(); resetPhoto('extra-4-page1');" title="Reset">↺</button>
+                                <button onclick="event.stopPropagation(); deletePhoto('extra-4-page1');" class="delete-btn" title="Delete">✕</button>
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- Row 3: Blank for Handwriting (50% height) -->
+                    <div class="row-3"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 2: PRINTING PATH -->
+        <div class="page-wrapper" id="page-2-wrapper">
+            <h2>Page 2: Printing Path (Data Only)</h2>
+            <button class="print-button" onclick="printPage(2)">Print Page 2</button>
+            <div class="a4-page" id="page2">
+                <div class="page-content">
+                    <!-- Row 1: 4 Columns with Data -->
+                    <div class="row-1">
+                        <!-- Column 1: Personal Details + Connection (spaced) -->
+                        <div class="column column-split">
+                            <div class="column-section">
+                                <h3>Personal Details</h3>
+                                <div class="data-item"><span class="label">Name:</span><span class="value" id="name_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">DOB:</span><span class="value" id="dob_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Gender:</span><span class="value" id="gender_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Phone:</span><span class="value" id="phone_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Alt Phone:</span><span class="value" id="alt_phone_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Email:</span><span class="value" id="email_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Social:</span><span class="value" id="social_print" contenteditable="true"></span></div>
+                            </div>
+                            <div class="column-section">
+                                <h3>Connection</h3>
+                                <div class="data-item"><span class="label">First Meet:</span><span class="value" id="first_meet_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Relation:</span><span class="value" id="relationship_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Father:</span><span class="value" id="father_name_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Mother:</span><span class="value" id="mother_name_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Zodiac:</span><span class="value" id="zodiac_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Best Friend:</span><span class="value" id="best_friend_print" contenteditable="true"></span></div>
+                            </div>
+                        </div>
+                        
+                        <!-- Column 2: Main Photo -->
+                        <div class="column" style="justify-content: center; align-items: center; padding: 4px;">
+                            <div class="main-photo" id="main-photo-2">
+                                <span class="photo-placeholder">Click to add Photo</span>
+                                <img id="main-pic-2" src="" alt="">
+                            </div>
+                        </div>
+                        
+                        <!-- Column 3: Favorites -->
+                        <div class="column">
+                            <h3>Favorites & More</h3>
+                            <div class="data-item"><span class="label">Hobbies:</span><span class="value" id="hobbies_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Food:</span><span class="value" id="fav_food_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Chocolate:</span><span class="value" id="fav_chocolate_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Movie:</span><span class="value" id="fav_movie_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Song:</span><span class="value" id="fav_song_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Place:</span><span class="value" id="fav_place_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Color:</span><span class="value" id="fav_color_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Actor:</span><span class="value" id="fav_actor_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Actress:</span><span class="value" id="fav_actress_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Fruit:</span><span class="value" id="fav_fruit_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Sweet:</span><span class="value" id="fav_sweet_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Subject:</span><span class="value" id="fav_subject_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Book:</span><span class="value" id="fav_book_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Person:</span><span class="value" id="fav_person_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Dream:</span><span class="value" id="dream_place_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Memory:</span><span class="value" id="memory_print" contenteditable="true"></span></div>
+                        </div>
+                        
+                        <!-- Column 4: Journey -->
+                        <div class="column">
+                            <h3>Journey</h3>
+                            <div class="data-item"><span class="label">10th:</span><span class="value" id="school_10_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">12th:</span><span class="value" id="school_12_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Stream:</span><span class="value" id="stream_12_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">College:</span><span class="value" id="college_name_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">City:</span><span class="value" id="college_city_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Degree:</span><span class="value" id="degree_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Branch:</span><span class="value" id="college_branch_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Company:</span><span class="value" id="company_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Work City:</span><span class="value" id="company_city_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Address:</span><span class="value" id="address_print" contenteditable="true"></span></div>
+                        </div>
+                    </div>
+                    
+                    <!-- Row 2: 4 Photo Boxes (25% height) -->
+                    <div class="row-2">
+                        <div class="photo-container">
+                            <span class="photo-placeholder">Click to add Photo</span>
+                            <img id="extra-1-page2" src="" alt="">
+                        </div>
+                        <div class="photo-container">
+                            <span class="photo-placeholder">Click to add Photo</span>
+                            <img id="extra-2-page2" src="" alt="">
+                        </div>
+                        <div class="photo-container">
+                            <span class="photo-placeholder">Click to add Photo</span>
+                            <img id="extra-3-page2" src="" alt="">
+                        </div>
+                        <div class="photo-container">
+                            <span class="photo-placeholder">Click to add Photo</span>
+                            <img id="extra-4-page2" src="" alt="">
+                        </div>
+                    </div>
+                    
+                    <!-- Row 3: Blank for Handwriting (50% height) -->
+                    <div class="row-3"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Photo state storage for zoom/pan
+        const photoStates = {};
+        
+        function initPhotoState(imgId) {
+            if (!photoStates[imgId]) {
+                photoStates[imgId] = { scale: 1, x: 0, y: 0 };
+            }
+            return photoStates[imgId];
+        }
+        
+        function applyPhotoTransform(imgId) {
+            const img = document.getElementById(imgId);
+            const state = photoStates[imgId];
+            if (img && state) {
+                img.style.transform = `translate(${state.x}px, ${state.y}px) scale(${state.scale})`;
+                // Sync to page 2
+                const page2Id = imgId.replace('page1', 'page2').replace('main-pic-1', 'main-pic-2');
+                const img2 = document.getElementById(page2Id);
+                if (img2 && img2 !== img) {
+                    img2.style.transform = img.style.transform;
+                }
+            }
+        }
+        
+        function zoomPhoto(imgId, delta) {
+            const state = initPhotoState(imgId);
+            state.scale = Math.max(0.5, Math.min(5, state.scale + delta));
+            applyPhotoTransform(imgId);
+        }
+        
+        function resetPhoto(imgId) {
+            photoStates[imgId] = { scale: 1, x: 0, y: 0 };
+            applyPhotoTransform(imgId);
+            // Re-fit to container
+            const img = document.getElementById(imgId);
+            if (img && img.src && img.src.startsWith('data:')) {
+                fitPhotoToContainer(imgId);
+            }
+        }
+        
+        function deletePhoto(imgId) {
+            const img = document.getElementById(imgId);
+            if (!img) return;
+            
+            // Clear the image
+            img.src = '';
+            img.style.transform = '';
+            img.style.width = '';
+            img.style.height = '';
+            img.style.left = '';
+            img.style.top = '';
+            
+            // Reset state
+            delete photoStates[imgId];
+            
+            // Show placeholder again
+            const placeholder = img.parentElement.querySelector('.photo-placeholder');
+            if (placeholder) {
+                placeholder.style.display = '';
+            }
+            
+            // Remove has-photo class for main photo
+            if (imgId === 'main-pic-1') {
+                document.getElementById('main-photo-1').classList.remove('has-photo');
+                document.getElementById('main-photo-2').classList.remove('has-photo');
+                // Clear page 2 image too
+                const img2 = document.getElementById('main-pic-2');
+                if (img2) {
+                    img2.src = '';
+                    img2.style.transform = '';
+                }
+                const placeholder2 = document.querySelector('#main-photo-2 .photo-placeholder');
+                if (placeholder2) placeholder2.style.display = '';
+            } else {
+                // Sync to page 2 for extra photos
+                const page2Id = imgId.replace('page1', 'page2');
+                const img2 = document.getElementById(page2Id);
+                if (img2) {
+                    img2.src = '';
+                    img2.style.transform = '';
+                    const placeholder2 = img2.parentElement.querySelector('.photo-placeholder');
+                    if (placeholder2) placeholder2.style.display = '';
+                }
+            }
+        }
+        
+        // Drag functionality for photos
+        function setupPhotoDrag(imgId) {
+            const img = document.getElementById(imgId);
+            if (!img) return;
+            
+            let isDragging = false;
+            let startX, startY;
+            
+            img.addEventListener('mousedown', (e) => {
+                if (!img.src || img.src === window.location.href) return;
+                e.preventDefault();
+                isDragging = true;
+                const state = initPhotoState(imgId);
+                startX = e.clientX - state.x;
+                startY = e.clientY - state.y;
+                img.style.cursor = 'grabbing';
+            });
+            
+            document.addEventListener('mousemove', (e) => {
+                if (!isDragging) return;
+                const state = photoStates[imgId];
+                state.x = e.clientX - startX;
+                state.y = e.clientY - startY;
+                applyPhotoTransform(imgId);
+            });
+            
+            document.addEventListener('mouseup', () => {
+                if (isDragging) {
+                    isDragging = false;
+                    img.style.cursor = 'grab';
+                }
+            });
+            
+            // Mouse wheel zoom
+            img.parentElement.addEventListener('wheel', (e) => {
+                if (!img.src || img.src === window.location.href) return;
+                e.preventDefault();
+                const delta = e.deltaY > 0 ? -0.1 : 0.1;
+                zoomPhoto(imgId, delta);
+            });
+        }
+        
+        function fitPhotoToContainer(imgId) {
+            const img = document.getElementById(imgId);
+            const container = img.parentElement;
+            if (!img || !container) return;
+            
+            const containerW = container.clientWidth;
+            const containerH = container.clientHeight;
+            const imgW = img.naturalWidth;
+            const imgH = img.naturalHeight;
+            
+            // Calculate scale to fit
+            const scaleW = containerW / imgW;
+            const scaleH = containerH / imgH;
+            const scale = Math.min(scaleW, scaleH);
+            
+            // Set image size
+            img.style.width = imgW + 'px';
+            img.style.height = imgH + 'px';
+            img.style.left = (containerW - imgW) / 2 + 'px';
+            img.style.top = (containerH - imgH) / 2 + 'px';
+            
+            const state = initPhotoState(imgId);
+            state.scale = scale;
+            state.x = 0;
+            state.y = 0;
+            applyPhotoTransform(imgId);
+        }
+
+        document.addEventListener('DOMContentLoaded', function() {
+            // Setup drag for all photos
+            setupPhotoDrag('main-pic-1');
+            setupPhotoDrag('extra-1-page1');
+            setupPhotoDrag('extra-2-page1');
+            setupPhotoDrag('extra-3-page1');
+            setupPhotoDrag('extra-4-page1');
+            
+            // Find all editable fields on the first page
+            const editableFields = document.querySelectorAll('#page1 [contenteditable="true"]');
+            
+            // Sync data from page 1 to page 2
+            function syncAllData() {
+                editableFields.forEach(field => {
+                    const printFieldId = field.id + '_print';
+                    const printField = document.getElementById(printFieldId);
+                    if (printField) {
+                        printField.innerHTML = field.innerHTML;
+                    }
+                });
+            }
+
+            // Add input listener to sync on typing
+            editableFields.forEach(field => {
+                field.addEventListener('input', (event) => {
+                    const printFieldId = event.target.id + '_print';
+                    const printField = document.getElementById(printFieldId);
+                    if (printField) {
+                        printField.innerHTML = event.target.innerHTML;
+                    }
+                });
+            });
+            
+            // Main Photo Upload (Column 2)
+            document.getElementById('photo-input-main').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img1 = document.getElementById('main-pic-1');
+                        const img2 = document.getElementById('main-pic-2');
+                        img1.src = e.target.result;
+                        img2.src = e.target.result;
+                        // Initialize photo and fit to container
+                        initPhotoState('main-pic-1');
+                        img1.onload = function() {
+                            fitPhotoToContainer('main-pic-1');
+                        };
+                        document.getElementById('main-photo-1').classList.add('has-photo');
+                        document.getElementById('main-photo-2').classList.add('has-photo');
+                        document.querySelectorAll('#main-photo-1 .photo-placeholder, #main-photo-2 .photo-placeholder').forEach(p => p.style.display = 'none');
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Photo 1 (Row 2)
+            document.getElementById('photo-input-1').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img1 = document.getElementById('extra-1-page1');
+                        const img2 = document.getElementById('extra-1-page2');
+                        img1.src = e.target.result;
+                        img2.src = e.target.result;
+                        initPhotoState('extra-1-page1');
+                        img1.onload = function() { fitPhotoToContainer('extra-1-page1'); };
+                        document.querySelectorAll('#extra-1-page1, #extra-1-page2').forEach(img => {
+                            img.parentElement.querySelector('.photo-placeholder').style.display = 'none';
+                        });
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Photo 2
+            document.getElementById('photo-input-2').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img1 = document.getElementById('extra-2-page1');
+                        const img2 = document.getElementById('extra-2-page2');
+                        img1.src = e.target.result;
+                        img2.src = e.target.result;
+                        initPhotoState('extra-2-page1');
+                        img1.onload = function() { fitPhotoToContainer('extra-2-page1'); };
+                        document.querySelectorAll('#extra-2-page1, #extra-2-page2').forEach(img => {
+                            img.parentElement.querySelector('.photo-placeholder').style.display = 'none';
+                        });
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Photo 3
+            document.getElementById('photo-input-3').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img1 = document.getElementById('extra-3-page1');
+                        const img2 = document.getElementById('extra-3-page2');
+                        img1.src = e.target.result;
+                        img2.src = e.target.result;
+                        initPhotoState('extra-3-page1');
+                        img1.onload = function() { fitPhotoToContainer('extra-3-page1'); };
+                        document.querySelectorAll('#extra-3-page1, #extra-3-page2').forEach(img => {
+                            img.parentElement.querySelector('.photo-placeholder').style.display = 'none';
+                        });
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Photo 4
+            document.getElementById('photo-input-4').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        const img1 = document.getElementById('extra-4-page1');
+                        const img2 = document.getElementById('extra-4-page2');
+                        img1.src = e.target.result;
+                        img2.src = e.target.result;
+                        initPhotoState('extra-4-page1');
+                        img1.onload = function() { fitPhotoToContainer('extra-4-page1'); };
+                        document.querySelectorAll('#extra-4-page1, #extra-4-page2').forEach(img => {
+                            img.parentElement.querySelector('.photo-placeholder').style.display = 'none';
+                        });
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+
+            // Initial sync
+            syncAllData();
+        });
+
+        // Print Function
+        function printPage(pageNumber) {
+            const body = document.body;
+            body.classList.add(`printing-page-${pageNumber}`);
+
+            let toRestore = [];
+            
+            // For both pages: hide empty photos
+            const pageId = pageNumber === 1 ? 'page1' : 'page2';
+            
+            // Hide main photo if empty
+            const mainImg = document.getElementById(pageNumber === 1 ? 'main-pic-1' : 'main-pic-2');
+            const mainContainer = document.getElementById(pageNumber === 1 ? 'main-photo-1' : 'main-photo-2');
+            if (!mainImg.src || mainImg.src === window.location.href || mainImg.src === '' || !mainImg.src.startsWith('data:')) {
+                mainImg.style.display = 'none';
+                toRestore.push({ el: mainImg, type: 'display', pre: '' });
+            }
+
+            // Hide empty extra photos
+            const pageSuffix = pageNumber === 1 ? 'page1' : 'page2';
+            for (let i = 1; i <= 4; i++) {
+                const img = document.getElementById(`extra-${i}-${pageSuffix}`);
+                if (!img.src || img.src === window.location.href || img.src === '' || !img.src.startsWith('data:')) {
+                    img.style.display = 'none';
+                    toRestore.push({ el: img, type: 'display', pre: '' });
+                }
+            }
+            
+            if (pageNumber === 2) {
+                // For overlay printing: hide empty values but KEEP the space
+                // Only hide the text content, not the row itself
+                document.querySelectorAll('#page2 .data-item').forEach(row => {
+                    const valEl = row.querySelector('.value');
+                    const text = (valEl?.textContent || '').trim();
+                    if (!text) {
+                        // Make the value invisible but keep space
+                        valEl.dataset._preVisibility = valEl.style.visibility || '';
+                        valEl.style.visibility = 'hidden';
+                        toRestore.push({ el: valEl, type: 'visibility' });
+                    }
+                });
+            }
+
+            window.print();
+
+            setTimeout(() => {
+                body.classList.remove(`printing-page-${pageNumber}`);
+                toRestore.forEach(item => {
+                    if (item.type === 'display') {
+                        item.el.style.display = item.el.dataset._preDisplay || item.pre || '';
+                        delete item.el.dataset._preDisplay;
+                    } else if (item.type === 'visibility') {
+                        item.el.style.visibility = item.el.dataset._preVisibility;
+                        delete item.el.dataset._preVisibility;
+                    }
+                });
+            }, 500);
+        }
+    </script>
+
+</body>
+</html>

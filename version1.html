@@ -1,0 +1,577 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friend Profile Template</title>
+    <style>
+        /* General Body and Page Setup */
+        body {
+            background-color: #e0e0e0;
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            display: flex;
+            justify-content: center;
+            align-items: flex-start;
+            padding: 2rem 0;
+            margin: 0;
+            color: #333;
+        }
+
+        .main-container {
+            display: flex;
+            gap: 20px;
+            width: 100%;
+            justify-content: center;
+            flex-wrap: wrap;
+        }
+
+        .page-wrapper {
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            gap: 15px;
+        }
+
+        /* A4 Page Styling - increased left margin for hole punch */
+        .a4-page {
+            width: 21cm;
+            height: 29.7cm;
+            background: white;
+            border: 1px solid #ccc;
+            box-shadow: 0 0 10px rgba(0,0,0,0.15);
+            padding: 0.8cm 0.8cm 0.8cm 2cm; /* Extra left margin for hole punch */
+            box-sizing: border-box;
+            display: flex;
+            flex-direction: column;
+            position: relative;
+        }
+
+        /* Page Content Structure - 4 quarters (1:1:1:1) */
+        .page-content {
+            flex-grow: 1;
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 0;
+        }
+        
+        /* Quarter styling */
+        .quarter {
+            border: 1px solid #eee;
+            box-sizing: border-box;
+            padding: 4px 6px;
+            display: flex;
+            flex-direction: column;
+            overflow: hidden;
+        }
+        
+        /* 1st Quarter: All Details + 1 Compulsory Photo */
+        .quarter-1 {
+            display: flex;
+            flex-direction: row;
+            gap: 4px;
+        }
+        
+        .details-section {
+            flex: 1;
+            display: flex;
+            flex-direction: column;
+            gap: 1px;
+            overflow: hidden;
+        }
+        
+        .main-photo-section {
+            width: 100px;
+            display: flex;
+            flex-direction: column;
+        }
+        
+        /* 2nd Quarter: Complementary Photos (prints like Page 2 - no borders) */
+        .quarter-2 {
+            display: grid;
+            grid-template-columns: 1fr 1fr;
+            grid-template-rows: 1fr 1fr;
+            gap: 4px;
+        }
+        
+        /* 3rd & 4th Quarters: Blank for handwriting */
+        .quarter-3, .quarter-4 {
+            /* Intentionally blank - for handwriting after printing */
+            background: transparent;
+        }
+
+        /* Data Item Styling - minimal spacing */
+        h3 {
+            margin: 0 0 2px 0;
+            color: #4a4a4a;
+            font-size: 9px;
+            border-bottom: 1px solid #ccc;
+            padding-bottom: 1px;
+        }
+
+        .data-item {
+            display: flex;
+            font-size: 8px;
+            align-items: baseline;
+            line-height: 1.1;
+        }
+        
+        .data-item .label {
+            font-weight: bold;
+            min-width: 55px;
+            flex-shrink: 0;
+            font-size: 8px;
+        }
+
+        .data-item .value {
+            border-bottom: 1px dotted #ccc;
+            flex-grow: 1;
+            outline: none;
+            padding: 0px 2px;
+            min-height: 9px;
+            font-size: 8px;
+        }
+
+        .data-item .value:focus {
+            background-color: #f0f8ff;
+        }
+        
+        /* Photo Area */
+        .photo-container {
+            width: 100%;
+            flex: 1;
+            border: 1px dashed #ccc;
+            display: flex;
+            justify-content: center;
+            align-items: center;
+            flex-direction: column;
+            cursor: pointer;
+            position: relative;
+            background-color: #f9f9f9;
+            overflow: hidden;
+            min-height: 60px;
+        }
+
+        .photo-container img {
+            max-width: 100%;
+            max-height: 100%;
+            object-fit: contain;
+        }
+        
+        .photo-placeholder {
+            color: #aaa;
+            text-align: center;
+            font-size: 8px;
+        }
+        
+        .photo-label {
+            font-size: 7px;
+            color: #666;
+            text-align: center;
+            margin-top: 2px;
+        }
+        
+        /* Hide file inputs */
+        input[type="file"] {
+            display: none;
+        }
+        
+        /* Print Button */
+        .print-button {
+            padding: 10px 20px;
+            font-size: 16px;
+            cursor: pointer;
+            border: none;
+            background-color: #007bff;
+            color: white;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .print-button:hover {
+            background-color: #0056b3;
+        }
+
+        /* ---- PRINT STYLES ---- */
+        @media print {
+            body {
+                background-color: white;
+                padding: 0;
+                margin: 0;
+            }
+            .main-container, .page-wrapper {
+                display: block;
+                box-shadow: none;
+            }
+            .print-button, .page-wrapper h2 {
+                display: none;
+            }
+            .a4-page {
+                box-shadow: none;
+                border: none;
+                margin: 0;
+                padding: 0.8cm 0.8cm 0.8cm 2cm;
+                width: 100%;
+                height: 100%;
+            }
+
+            /* Hide photo placeholder text when printing */
+            .photo-placeholder {
+                display: none !important;
+            }
+
+            /* Hides the other page when printing one */
+            body.printing-page-1 #page-2-wrapper,
+            body.printing-page-2 #page-1-wrapper {
+                display: none;
+            }
+
+            /* Complementary photos (quarter-2) print WITHOUT borders on BOTH pages */
+            .quarter-2 .photo-container {
+                border: none !important;
+                background: transparent !important;
+            }
+            .quarter-2 .photo-label {
+                display: none !important;
+            }
+
+            /* For Page 2: print ONLY data values - no labels, headings, borders */
+            body.printing-page-2 #page2 h3,
+            body.printing-page-2 #page2 .label {
+                visibility: hidden;
+            }
+            body.printing-page-2 #page2 .quarter {
+                border: none !important;
+            }
+            body.printing-page-2 #page2 .value {
+                border: none !important;
+            }
+            body.printing-page-2 #page2 .quarter-1 .photo-container {
+                border: none !important;
+                background: transparent !important;
+            }
+        }
+    </style>
+</head>
+<body>
+
+    <div class="main-container">
+        <!-- Hidden file inputs for all photos -->
+        <input type="file" id="photo-input-main" accept="image/*">
+        <input type="file" id="photo-input-1" accept="image/*">
+        <input type="file" id="photo-input-2" accept="image/*">
+        <input type="file" id="photo-input-3" accept="image/*">
+        <input type="file" id="photo-input-4" accept="image/*">
+        
+        <!-- PAGE 1: TEMPLATE -->
+        <div class="page-wrapper" id="page-1-wrapper">
+            <h2>Page 1: Template (with Labels)</h2>
+            <button class="print-button" onclick="printPage(1)">Print Page 1</button>
+            <div class="a4-page" id="page1">
+                <div class="page-content">
+                    <!-- 1st Quarter: All Details + 1 Compulsory Photo -->
+                    <div class="quarter quarter-1">
+                        <div class="details-section">
+                            <h3>Personal Details</h3>
+                            <div class="data-item"><span class="label">Name:</span><span class="value" id="name" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">DOB:</span><span class="value" id="dob" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Gender:</span><span class="value" id="gender" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Phone:</span><span class="value" id="phone" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Alt Phone:</span><span class="value" id="alt_phone" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Email:</span><span class="value" id="email" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Social:</span><span class="value" id="social" contenteditable="true"></span></div>
+                            
+                            <h3>Connection</h3>
+                            <div class="data-item"><span class="label">First Meet:</span><span class="value" id="first_meet" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Relation:</span><span class="value" id="relationship" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Father:</span><span class="value" id="father_name" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Mother:</span><span class="value" id="mother_name" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Zodiac:</span><span class="value" id="zodiac" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Best Friend:</span><span class="value" id="best_friend" contenteditable="true"></span></div>
+                            
+                            <h3>Favorites</h3>
+                            <div class="data-item"><span class="label">Hobbies:</span><span class="value" id="hobbies" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Food:</span><span class="value" id="fav_food" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Chocolate:</span><span class="value" id="fav_chocolate" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Movie:</span><span class="value" id="fav_movie" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Song:</span><span class="value" id="fav_song" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Place:</span><span class="value" id="fav_place" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Color:</span><span class="value" id="fav_color" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Actor:</span><span class="value" id="fav_actor" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Actress:</span><span class="value" id="fav_actress" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Fruit:</span><span class="value" id="fav_fruit" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Sweet:</span><span class="value" id="fav_sweet" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Subject:</span><span class="value" id="fav_subject" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Book:</span><span class="value" id="fav_book" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Person:</span><span class="value" id="fav_person" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Dream:</span><span class="value" id="dream_place" contenteditable="true"></span></div>
+                            
+                            <h3>Journey</h3>
+                            <div class="data-item"><span class="label">10th:</span><span class="value" id="school_10" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">12th:</span><span class="value" id="school_12" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Stream:</span><span class="value" id="stream_12" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">College:</span><span class="value" id="college_name" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">City:</span><span class="value" id="college_city" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Degree:</span><span class="value" id="degree" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Branch:</span><span class="value" id="college_branch" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Company:</span><span class="value" id="company" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Work City:</span><span class="value" id="company_city" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Address:</span><span class="value" id="address" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Memory:</span><span class="value" id="memory" contenteditable="true"></span></div>
+                        </div>
+                        <div class="main-photo-section">
+                            <div class="photo-container" id="main-photo-1" onclick="document.getElementById('photo-input-main').click();">
+                                <span class="photo-placeholder">Main Photo</span>
+                                <img id="main-pic-1" src="" alt="">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 2nd Quarter: Complementary Photos (prints like Page 2 - no borders) -->
+                    <div class="quarter quarter-2">
+                        <div class="photo-container" onclick="document.getElementById('photo-input-1').click();">
+                            <span class="photo-placeholder">Photo 1</span>
+                            <img id="extra-pic-1-1" src="" alt="">
+                        </div>
+                        <div class="photo-container" onclick="document.getElementById('photo-input-2').click();">
+                            <span class="photo-placeholder">Photo 2</span>
+                            <img id="extra-pic-2-1" src="" alt="">
+                        </div>
+                        <div class="photo-container" onclick="document.getElementById('photo-input-3').click();">
+                            <span class="photo-placeholder">Photo 3</span>
+                            <img id="extra-pic-3-1" src="" alt="">
+                        </div>
+                        <div class="photo-container" onclick="document.getElementById('photo-input-4').click();">
+                            <span class="photo-placeholder">Photo 4</span>
+                            <img id="extra-pic-4-1" src="" alt="">
+                        </div>
+                    </div>
+                    
+                    <!-- 3rd Quarter: Blank for handwriting -->
+                    <div class="quarter quarter-3"></div>
+                    
+                    <!-- 4th Quarter: Blank for handwriting -->
+                    <div class="quarter quarter-4"></div>
+                </div>
+            </div>
+        </div>
+
+        <!-- PAGE 2: PRINTING PATH -->
+        <div class="page-wrapper" id="page-2-wrapper">
+            <h2>Page 2: Printing Path (Data Only)</h2>
+            <button class="print-button" onclick="printPage(2)">Print Page 2</button>
+            <div class="a4-page" id="page2">
+                <div class="page-content">
+                    <!-- 1st Quarter: All Details + 1 Compulsory Photo -->
+                    <div class="quarter quarter-1">
+                        <div class="details-section">
+                            <h3>Personal Details</h3>
+                            <div class="data-item"><span class="label">Name:</span><span class="value" id="name_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">DOB:</span><span class="value" id="dob_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Gender:</span><span class="value" id="gender_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Phone:</span><span class="value" id="phone_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Alt Phone:</span><span class="value" id="alt_phone_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Email:</span><span class="value" id="email_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Social:</span><span class="value" id="social_print" contenteditable="true"></span></div>
+                            
+                            <h3>Connection</h3>
+                            <div class="data-item"><span class="label">First Meet:</span><span class="value" id="first_meet_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Relation:</span><span class="value" id="relationship_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Father:</span><span class="value" id="father_name_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Mother:</span><span class="value" id="mother_name_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Zodiac:</span><span class="value" id="zodiac_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Best Friend:</span><span class="value" id="best_friend_print" contenteditable="true"></span></div>
+                            
+                            <h3>Favorites</h3>
+                            <div class="data-item"><span class="label">Hobbies:</span><span class="value" id="hobbies_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Food:</span><span class="value" id="fav_food_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Chocolate:</span><span class="value" id="fav_chocolate_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Movie:</span><span class="value" id="fav_movie_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Song:</span><span class="value" id="fav_song_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Place:</span><span class="value" id="fav_place_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Color:</span><span class="value" id="fav_color_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Actor:</span><span class="value" id="fav_actor_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Actress:</span><span class="value" id="fav_actress_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Fruit:</span><span class="value" id="fav_fruit_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Sweet:</span><span class="value" id="fav_sweet_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Subject:</span><span class="value" id="fav_subject_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Book:</span><span class="value" id="fav_book_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Person:</span><span class="value" id="fav_person_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Dream:</span><span class="value" id="dream_place_print" contenteditable="true"></span></div>
+                            
+                            <h3>Journey</h3>
+                            <div class="data-item"><span class="label">10th:</span><span class="value" id="school_10_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">12th:</span><span class="value" id="school_12_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Stream:</span><span class="value" id="stream_12_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">College:</span><span class="value" id="college_name_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">City:</span><span class="value" id="college_city_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Degree:</span><span class="value" id="degree_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Branch:</span><span class="value" id="college_branch_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Company:</span><span class="value" id="company_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Work City:</span><span class="value" id="company_city_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Address:</span><span class="value" id="address_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Memory:</span><span class="value" id="memory_print" contenteditable="true"></span></div>
+                        </div>
+                        <div class="main-photo-section">
+                            <div class="photo-container" id="main-photo-2">
+                                <span class="photo-placeholder">Main Photo</span>
+                                <img id="main-pic-2" src="" alt="">
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <!-- 2nd Quarter: Complementary Photos -->
+                    <div class="quarter quarter-2">
+                        <div class="photo-container">
+                            <span class="photo-placeholder">Photo 1</span>
+                            <img id="extra-pic-1-2" src="" alt="">
+                        </div>
+                        <div class="photo-container">
+                            <span class="photo-placeholder">Photo 2</span>
+                            <img id="extra-pic-2-2" src="" alt="">
+                        </div>
+                        <div class="photo-container">
+                            <span class="photo-placeholder">Photo 3</span>
+                            <img id="extra-pic-3-2" src="" alt="">
+                        </div>
+                        <div class="photo-container">
+                            <span class="photo-placeholder">Photo 4</span>
+                            <img id="extra-pic-4-2" src="" alt="">
+                        </div>
+                    </div>
+                    
+                    <!-- 3rd Quarter: Blank for handwriting -->
+                    <div class="quarter quarter-3"></div>
+                    
+                    <!-- 4th Quarter: Blank for handwriting -->
+                    <div class="quarter quarter-4"></div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function() {
+            // Find all editable fields on the first page
+            const editableFields = document.querySelectorAll('#page1 [contenteditable="true"]');
+            
+            // Function to sync all data from page 1 to page 2
+            function syncAllData() {
+                editableFields.forEach(field => {
+                    const printFieldId = field.id + '_print';
+                    const printField = document.getElementById(printFieldId);
+                    if (printField) {
+                        printField.innerHTML = field.innerHTML;
+                    }
+                });
+            }
+
+            // Add an input event listener to each editable field
+            editableFields.forEach(field => {
+                field.addEventListener('input', (event) => {
+                    const targetId = event.target.id;
+                    const printFieldId = targetId + '_print';
+                    const printField = document.getElementById(printFieldId);
+                    if (printField) {
+                        printField.innerHTML = event.target.innerHTML;
+                    }
+                });
+            });
+            
+            // Main Photo Upload
+            document.getElementById('photo-input-main').addEventListener('change', function(event) {
+                const file = event.target.files[0];
+                if (file) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        document.getElementById('main-pic-1').src = e.target.result;
+                        document.getElementById('main-pic-2').src = e.target.result;
+                        document.querySelectorAll('#main-photo-1 .photo-placeholder, #main-photo-2 .photo-placeholder').forEach(p => p.style.display = 'none');
+                    }
+                    reader.readAsDataURL(file);
+                }
+            });
+            
+            // Extra Photos Upload (sync to page 2)
+            for (let i = 1; i <= 4; i++) {
+                document.getElementById(`photo-input-${i}`).addEventListener('change', function(event) {
+                    const file = event.target.files[0];
+                    if (file) {
+                        const reader = new FileReader();
+                        reader.onload = function(e) {
+                            document.getElementById(`extra-pic-${i}-1`).src = e.target.result;
+                            document.getElementById(`extra-pic-${i}-2`).src = e.target.result;
+                            // Hide placeholders
+                            const containers = document.querySelectorAll(`.quarter-2 .photo-container`);
+                            containers[i-1].querySelector('.photo-placeholder').style.display = 'none';
+                            // Also hide on page 2
+                            const page2Containers = document.querySelectorAll('#page2 .quarter-2 .photo-container');
+                            page2Containers[i-1].querySelector('.photo-placeholder').style.display = 'none';
+                        }
+                        reader.readAsDataURL(file);
+                    }
+                });
+            }
+
+            // Initial sync on page load
+            syncAllData();
+        });
+
+        // Print Function
+        function printPage(pageNumber) {
+            const body = document.body;
+            body.classList.add(`printing-page-${pageNumber}`);
+
+            let toRestore = [];
+            if (pageNumber === 2) {
+                // Hide data items with no value
+                const rows = document.querySelectorAll('#page2 .data-item');
+                rows.forEach(row => {
+                    const valEl = row.querySelector('.value');
+                    const text = (valEl?.textContent || '').trim();
+                    if (!text) {
+                        row.dataset._preDisplay = row.style.display || '';
+                        row.style.display = 'none';
+                        toRestore.push({ el: row, type: 'display' });
+                    }
+                });
+
+                // Hide main photo if empty
+                const mainImg = document.getElementById('main-pic-2');
+                const mainContainer = document.getElementById('main-photo-2');
+                if (!mainImg.src || mainImg.src === window.location.href || mainImg.src === '') {
+                    mainContainer.dataset._preVisibility = mainContainer.style.visibility || '';
+                    mainContainer.style.visibility = 'hidden';
+                    toRestore.push({ el: mainContainer, type: 'visibility' });
+                }
+                
+                // Hide extra photos if empty
+                for (let i = 1; i <= 4; i++) {
+                    const img = document.getElementById(`extra-pic-${i}-2`);
+                    const container = img.closest('.photo-container');
+                    if (!img.src || img.src === window.location.href || img.src === '') {
+                        container.dataset._preVisibility = container.style.visibility || '';
+                        container.style.visibility = 'hidden';
+                        toRestore.push({ el: container, type: 'visibility' });
+                    }
+                }
+            }
+
+            window.print();
+
+            setTimeout(() => {
+                body.classList.remove(`printing-page-${pageNumber}`);
+                toRestore.forEach(item => {
+                    if (item.type === 'display') {
+                        item.el.style.display = item.el.dataset._preDisplay;
+                        delete item.el.dataset._preDisplay;
+                    } else if (item.type === 'visibility') {
+                        item.el.style.visibility = item.el.dataset._preVisibility;
+                        delete item.el.dataset._preVisibility;
+                    }
+                });
+            }, 500);
+        }
+    </script>
+
+</body>
+</html>
