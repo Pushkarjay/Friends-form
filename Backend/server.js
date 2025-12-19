@@ -212,6 +212,54 @@ const server = http.createServer(async (req, res) => {
                 return;
             }
             
+            // GET unique values for a field (for autocomplete dropdowns)
+            if (pathname.match(/^\/api\/values\/\w+$/) && req.method === 'GET') {
+                const fieldName = pathname.split('/').pop();
+                const db = readDatabase();
+                const values = new Set();
+                
+                db.entries.forEach(entry => {
+                    let val = entry[fieldName];
+                    if (val && typeof val === 'string') {
+                        val = val.replace(/<[^>]*>/g, '').trim();
+                        if (val) values.add(val);
+                    }
+                });
+                
+                const sortedValues = Array.from(values).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+                sendJSON(res, { success: true, field: fieldName, values: sortedValues });
+                return;
+            }
+            
+            // GET all unique values for all fields (bulk fetch)
+            if (pathname === '/api/values' && req.method === 'GET') {
+                const db = readDatabase();
+                const allValues = {};
+                
+                db.entries.forEach(entry => {
+                    Object.keys(entry).forEach(key => {
+                        if (key === 'id' || key === 'created' || key === 'updated' || key === 'mainPhoto' || key === 'photos' || key === 'photoStates') return;
+                        
+                        let val = entry[key];
+                        if (val && typeof val === 'string') {
+                            val = val.replace(/<[^>]*>/g, '').trim();
+                            if (val) {
+                                if (!allValues[key]) allValues[key] = new Set();
+                                allValues[key].add(val);
+                            }
+                        }
+                    });
+                });
+                
+                // Convert sets to sorted arrays
+                Object.keys(allValues).forEach(key => {
+                    allValues[key] = Array.from(allValues[key]).sort((a, b) => a.toLowerCase().localeCompare(b.toLowerCase()));
+                });
+                
+                sendJSON(res, { success: true, values: allValues });
+                return;
+            }
+            
             // API route not found
             sendJSON(res, { success: false, error: 'API endpoint not found' }, 404);
             

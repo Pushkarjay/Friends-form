@@ -298,6 +298,61 @@
             100% { opacity: 0; }
         }
 
+        /* Dropdown/Autocomplete styling */
+        .dropdown-container {
+            position: relative;
+            display: inline;
+        }
+        .autocomplete-dropdown {
+            position: absolute;
+            top: 100%;
+            left: 0;
+            right: 0;
+            background: white;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            max-height: 150px;
+            overflow-y: auto;
+            z-index: 100;
+            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            display: none;
+        }
+        .autocomplete-dropdown.show {
+            display: block;
+        }
+        .autocomplete-item {
+            padding: 4px 8px;
+            cursor: pointer;
+            font-size: 9px;
+        }
+        .autocomplete-item:hover,
+        .autocomplete-item.selected {
+            background-color: #007bff;
+            color: white;
+        }
+        .data-item .value {
+            position: relative;
+        }
+        /* Date picker styling */
+        input[type='date'] {
+            border: none;
+            background: transparent;
+            font-size: 8px;
+            font-family: inherit;
+            padding: 0;
+            width: 100%;
+        }
+        /* Gender select styling */
+        select.gender-select {
+            border: none;
+            background: transparent;
+            font-size: 8px;
+            font-family: inherit;
+            padding: 0;
+            width: 100%;
+            cursor: pointer;
+        }
+
         /* Saved/Old data styling - shows data loaded from database */
         .value.saved-data {
             color: #999;
@@ -331,6 +386,17 @@
                 box-shadow: none;
             }
             .print-button, .save-button, .new-button, .db-button, .button-bar, .page-wrapper h2 { display: none !important; }
+            
+            /* Hide date input and gender select in print, show text value */
+            #dob-input, #gender-select {
+                display: none !important;
+            }
+            #dob::after {
+                content: attr(data-value);
+            }
+            #gender::after {
+                content: attr(data-value);
+            }
             .a4-page {
                 box-shadow: none;
                 border: none;
@@ -429,8 +495,8 @@
                             <div class="column-section">
                                 <h3>Personal Details</h3>
                                 <div class="data-item"><span class="label">Name:</span><span class="value" id="name" contenteditable="true"></span></div>
-                                <div class="data-item"><span class="label">DOB:</span><span class="value" id="dob" contenteditable="true"></span></div>
-                                <div class="data-item"><span class="label">Gender:</span><span class="value" id="gender" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">DOB:</span><span class="value" id="dob"><input type="date" id="dob-input" onchange="updateDOB(this)"></span></div>
+                                <div class="data-item"><span class="label">Gender:</span><span class="value" id="gender"><select class="gender-select" id="gender-select" onchange="updateGender(this)"><option value="">Select...</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></span></div>
                                 <div class="data-item"><span class="label">Phone:</span><span class="value" id="phone" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Alt Phone:</span><span class="value" id="alt_phone" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Email:</span><span class="value" id="email" contenteditable="true"></span></div>
@@ -700,7 +766,14 @@
             
             fieldIds.forEach(id => {
                 const el = document.getElementById(id);
-                data[id] = el ? el.innerHTML : '';
+                // Special handling for DOB and Gender which use inputs
+                if (id === 'dob') {
+                    data[id] = el?.dataset?.value || '';
+                } else if (id === 'gender') {
+                    data[id] = el?.dataset?.value || '';
+                } else {
+                    data[id] = el ? el.innerHTML : '';
+                }
             });
             
             // Save photos as base64
@@ -729,7 +802,32 @@
                 const value = data[id] || '';
                 
                 if (el) {
-                    el.innerHTML = value;
+                    // Special handling for DOB - set date input value
+                    if (id === 'dob' && value) {
+                        el.dataset.value = value;
+                        const dobInput = document.getElementById('dob-input');
+                        if (dobInput) {
+                            // Try to parse the saved date (format: "01 Jan 2000")
+                            try {
+                                const date = new Date(value);
+                                if (!isNaN(date.getTime())) {
+                                    dobInput.value = date.toISOString().split('T')[0];
+                                }
+                            } catch (e) { }
+                        }
+                    }
+                    // Special handling for Gender - set select value
+                    else if (id === 'gender' && value) {
+                        el.dataset.value = value;
+                        const genderSelect = document.getElementById('gender-select');
+                        if (genderSelect) {
+                            genderSelect.value = value;
+                        }
+                    }
+                    else {
+                        el.innerHTML = value;
+                    }
+                    
                     // Mark as saved if has data
                     if (value.trim()) {
                         el.classList.add('saved-data');
@@ -841,10 +939,24 @@
             fieldIds.forEach(id => {
                 const el = document.getElementById(id);
                 const printEl = document.getElementById(id + '_print');
-                if (el) el.innerHTML = '';
-                if (el) el.classList.remove('saved-data');
+                if (el) {
+                    if (id === 'dob' || id === 'gender') {
+                        el.dataset.value = '';
+                    } else {
+                        el.innerHTML = '';
+                    }
+                    el.classList.remove('saved-data');
+                }
                 if (printEl) printEl.innerHTML = '';
             });
+            
+            // Reset DOB date input
+            const dobInput = document.getElementById('dob-input');
+            if (dobInput) dobInput.value = '';
+            
+            // Reset Gender select
+            const genderSelect = document.getElementById('gender-select');
+            if (genderSelect) genderSelect.value = '';
             
             // Clear all photos
             deletePhoto('main-pic-1');
@@ -1038,10 +1150,14 @@
 
         document.addEventListener('DOMContentLoaded', async function() {
             // Check backend connection
+            let backendOk = false;
             try {
-                const backendOk = await checkBackend();
+                backendOk = await checkBackend();
                 if (!backendOk) {
                     console.warn('Backend not running - save functionality disabled');
+                } else {
+                    // Load dropdown values for autocomplete
+                    await loadDropdownValues();
                 }
                 
                 // Check for entry ID in URL
@@ -1064,9 +1180,18 @@
             // Find all editable fields on the first page
             const editableFields = document.querySelectorAll('#page1 [contenteditable="true"]');
             
+            // Setup autocomplete for each editable field
+            editableFields.forEach(field => {
+                if (field.id && field.id !== 'dob' && field.id !== 'gender') {
+                    setupAutocomplete(field.id);
+                }
+            });
+            
             // Sync data from page 1 to page 2
             function syncAllData() {
                 editableFields.forEach(field => {
+                    // Skip DOB and Gender - they use inputs, not contenteditable
+                    if (field.id === 'dob' || field.id === 'gender') return;
                     const printFieldId = field.id + '_print';
                     const printField = document.getElementById(printFieldId);
                     if (printField) {
@@ -1077,6 +1202,8 @@
 
             // Add input listener to sync on typing
             editableFields.forEach(field => {
+                // Skip DOB and Gender - they have their own update handlers
+                if (field.id === 'dob' || field.id === 'gender') return;
                 field.addEventListener('input', (event) => {
                     // When user types, remove saved-data class (it's now new/changed data)
                     event.target.classList.remove('saved-data');
@@ -1281,3 +1408,5 @@
 
 </body>
 </html>
+
+
