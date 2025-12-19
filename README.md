@@ -133,4 +133,16 @@ Personal use only.
 
 ---
 
+## 📋 Response Forms
+
+Collect friend data online using these forms:
+
+| Form | Link |
+|------|------|
+| **Response Form 1** (SurveyHeart) | [https://surveyheart.com/form/601f8c70106f57336fa57109](https://surveyheart.com/form/601f8c70106f57336fa57109) |
+| **Response Form 2** (Google Forms) | [https://docs.google.com/forms/d/e/1FAIpQLScWlljazTAvHwfOsIbrGjU7PEL4mGMQyVKnDysEnHXJx7zl1A/viewform](https://docs.google.com/forms/d/e/1FAIpQLScWlljazTAvHwfOsIbrGjU7PEL4mGMQyVKnDysEnHXJx7zl1A/viewform?usp=sf_link) |
+| **Response Form 3** | ------ |
+
+---
+
 Made with ❤️ for keeping friend memories organized

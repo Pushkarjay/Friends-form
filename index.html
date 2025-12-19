@@ -135,6 +135,17 @@
             background-color: #f0f8ff;
         }
         
+        /* Visual indicator for fields with autocomplete */
+        .data-item .value[contenteditable="true"]:empty:before {
+            content: 'Type or click...';
+            color: #bbb;
+            font-style: italic;
+            pointer-events: none;
+        }
+        .data-item .value[contenteditable="true"]:focus:empty:before {
+            content: '';
+        }
+        
         /* Photo Area in Row 2 - with borders for visual structure */
         .photo-container {
             flex: 1;
@@ -241,7 +252,7 @@
             flex-wrap: wrap;
             justify-content: center;
         }
-        .print-button, .save-button, .new-button, .db-button {
+        .print-button, .save-button, .new-button, .db-button, .export-button {
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
@@ -273,6 +284,12 @@
         }
         .db-button:hover {
             background-color: #117a8b;
+        }
+        .export-button {
+            background-color: #fd7e14;
+        }
+        .export-button:hover {
+            background-color: #dc6a00;
         }
         .status-message {
             position: fixed;
@@ -308,27 +325,48 @@
             top: 100%;
             left: 0;
             right: 0;
+            min-width: 120px;
             background: white;
-            border: 1px solid #ccc;
+            border: 1px solid #007bff;
             border-radius: 4px;
-            max-height: 150px;
+            max-height: 180px;
             overflow-y: auto;
-            z-index: 100;
-            box-shadow: 0 2px 8px rgba(0,0,0,0.15);
+            z-index: 1000;
+            box-shadow: 0 4px 12px rgba(0,0,0,0.2);
             display: none;
         }
         .autocomplete-dropdown.show {
             display: block;
         }
+        .autocomplete-dropdown::-webkit-scrollbar {
+            width: 6px;
+        }
+        .autocomplete-dropdown::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 3px;
+        }
         .autocomplete-item {
-            padding: 4px 8px;
+            padding: 6px 10px;
             cursor: pointer;
-            font-size: 9px;
+            font-size: 10px;
+            border-bottom: 1px solid #f0f0f0;
+            transition: background-color 0.15s;
+        }
+        .autocomplete-item:last-child {
+            border-bottom: none;
         }
         .autocomplete-item:hover,
         .autocomplete-item.selected {
             background-color: #007bff;
             color: white;
+        }
+        .autocomplete-item:hover strong,
+        .autocomplete-item.selected strong {
+            color: #fff;
+        }
+        .autocomplete-item strong {
+            color: #007bff;
+            font-weight: bold;
         }
         .data-item .value {
             position: relative;
@@ -343,7 +381,8 @@
             width: 100%;
         }
         /* Gender select styling */
-        select.gender-select {
+        select.gender-select,
+        select.dropdown-select {
             border: none;
             background: transparent;
             font-size: 8px;
@@ -351,6 +390,9 @@
             padding: 0;
             width: 100%;
             cursor: pointer;
+        }
+        select.dropdown-select {
+            max-width: 100%;
         }
 
         /* Saved/Old data styling - shows data loaded from database */
@@ -385,16 +427,19 @@
                 display: block;
                 box-shadow: none;
             }
-            .print-button, .save-button, .new-button, .db-button, .button-bar, .page-wrapper h2 { display: none !important; }
+            .print-button, .save-button, .new-button, .db-button, .export-button, .button-bar, .page-wrapper h2 { display: none !important; }
             
             /* Hide date input and gender select in print, show text value */
-            #dob-input, #gender-select {
+            #dob-input, #gender-select, #zodiac-select {
                 display: none !important;
             }
             #dob::after {
                 content: attr(data-value);
             }
             #gender::after {
+                content: attr(data-value);
+            }
+            #zodiac::after {
                 content: attr(data-value);
             }
             .a4-page {
@@ -414,6 +459,24 @@
 
             /* Hide photo placeholder text when printing */
             .photo-placeholder {
+                display: none !important;
+            }
+            
+            /* Hide 'Type or click...' placeholder in print */
+            .data-item .value[contenteditable="true"]:empty:before {
+                content: '' !important;
+                display: none !important;
+            }
+            
+            /* Hide autocomplete dropdowns in print */
+            .autocomplete-dropdown {
+                display: none !important;
+            }
+            
+            /* Hide all select dropdowns in print - show data-value instead */
+            select.gender-select,
+            select.dropdown-select,
+            #zodiac-select {
                 display: none !important;
             }
             
@@ -484,6 +547,7 @@
                 <button class="save-button" onclick="saveEntry()">💾 Save Entry</button>
                 <button class="new-button" onclick="newEntry()">📄 New Entry</button>
                 <button class="db-button" onclick="window.open('database.html', '_blank')">📁 View Database</button>
+                <button class="export-button" onclick="exportCurrentEntry()">📤 Export JSON</button>
                 <button class="print-button" onclick="printPage(1)">🖨️ Print Page 1</button>
             </div>
             <div class="a4-page" id="page1">
@@ -494,22 +558,25 @@
                         <div class="column column-split">
                             <div class="column-section">
                                 <h3>Personal Details</h3>
-                                <div class="data-item"><span class="label">Name:</span><span class="value" id="name" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Full Name:</span><span class="value" id="name" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">DOB:</span><span class="value" id="dob"><input type="date" id="dob-input" onchange="updateDOB(this)"></span></div>
                                 <div class="data-item"><span class="label">Gender:</span><span class="value" id="gender"><select class="gender-select" id="gender-select" onchange="updateGender(this)"><option value="">Select...</option><option value="Male">Male</option><option value="Female">Female</option><option value="Other">Other</option></select></span></div>
                                 <div class="data-item"><span class="label">Phone:</span><span class="value" id="phone" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Alt Phone:</span><span class="value" id="alt_phone" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Email:</span><span class="value" id="email" contenteditable="true"></span></div>
-                                <div class="data-item"><span class="label">Social:</span><span class="value" id="social" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Instagram:</span><span class="value" id="instagram" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">LinkedIn:</span><span class="value" id="linkedin" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Other Social:</span><span class="value" id="other_social" contenteditable="true"></span></div>
                             </div>
                             <div class="column-section">
                                 <h3>Connection</h3>
-                                <div class="data-item"><span class="label">First Meet:</span><span class="value" id="first_meet" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">First Meet:</span><span class="value" id="first_meet" contenteditable="true" data-autocomplete="first_meet"></span></div>
                                 <div class="data-item"><span class="label">Relation:</span><span class="value" id="relationship" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Father:</span><span class="value" id="father_name" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Mother:</span><span class="value" id="mother_name" contenteditable="true"></span></div>
-                                <div class="data-item"><span class="label">Zodiac:</span><span class="value" id="zodiac" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Zodiac:</span><span class="value" id="zodiac"><select class="dropdown-select" id="zodiac-select" onchange="updateDropdown('zodiac', this)"><option value="">Select...</option><option value="Aries ♈ (Mesh)">Aries ♈ (Mesh)</option><option value="Taurus ♉ (Vrishabh)">Taurus ♉ (Vrishabh)</option><option value="Gemini ♊ (Mithun)">Gemini ♊ (Mithun)</option><option value="Cancer ♋ (Kark)">Cancer ♋ (Kark)</option><option value="Leo ♌ (Sinh)">Leo ♌ (Sinh)</option><option value="Virgo ♍ (Kanya)">Virgo ♍ (Kanya)</option><option value="Libra ♎ (Tula)">Libra ♎ (Tula)</option><option value="Scorpio ♏ (Vrishchik)">Scorpio ♏ (Vrishchik)</option><option value="Sagittarius ♐ (Dhanu)">Sagittarius ♐ (Dhanu)</option><option value="Capricorn ♑ (Makar)">Capricorn ♑ (Makar)</option><option value="Aquarius ♒ (Kumbh)">Aquarius ♒ (Kumbh)</option><option value="Pisces ♓ (Meen)">Pisces ♓ (Meen)</option><option value="Not Hindu">Not Hindu</option></select></span></div>
                                 <div class="data-item"><span class="label">Best Friend:</span><span class="value" id="best_friend" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Stay Connect:</span><span class="value" id="stay_connected" contenteditable="true"></span></div>
                             </div>
                         </div>
                         
@@ -545,22 +612,26 @@
                             <div class="data-item"><span class="label">Book:</span><span class="value" id="fav_book" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Person:</span><span class="value" id="fav_person" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Dream:</span><span class="value" id="dream_place" contenteditable="true"></span></div>
-                            <div class="data-item"><span class="label">Memory:</span><span class="value" id="memory" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Memory w/me:</span><span class="value" id="memory" contenteditable="true"></span></div>
                         </div>
                         
                         <!-- Column 4: Journey -->
                         <div class="column">
                             <h3>Journey</h3>
+                            <div class="data-item"><span class="label">Hometown:</span><span class="value" id="hometown" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">10th:</span><span class="value" id="school_10" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">10th City:</span><span class="value" id="school_10_city" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">12th:</span><span class="value" id="school_12" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">12th City:</span><span class="value" id="school_12_city" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Stream:</span><span class="value" id="stream_12" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">College:</span><span class="value" id="college_name" contenteditable="true"></span></div>
-                            <div class="data-item"><span class="label">City:</span><span class="value" id="college_city" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Clg City:</span><span class="value" id="college_city" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Degree:</span><span class="value" id="degree" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Branch:</span><span class="value" id="college_branch" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Company:</span><span class="value" id="company" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Work City:</span><span class="value" id="company_city" contenteditable="true"></span></div>
-                            <div class="data-item"><span class="label">Address:</span><span class="value" id="address" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Work Addr:</span><span class="value" id="work_address" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Home Addr:</span><span class="value" id="home_address" contenteditable="true"></span></div>
                         </div>
                     </div>
                     
@@ -628,13 +699,15 @@
                         <div class="column column-split">
                             <div class="column-section">
                                 <h3>Personal Details</h3>
-                                <div class="data-item"><span class="label">Name:</span><span class="value" id="name_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Full Name:</span><span class="value" id="name_print" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">DOB:</span><span class="value" id="dob_print" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Gender:</span><span class="value" id="gender_print" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Phone:</span><span class="value" id="phone_print" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Alt Phone:</span><span class="value" id="alt_phone_print" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Email:</span><span class="value" id="email_print" contenteditable="true"></span></div>
-                                <div class="data-item"><span class="label">Social:</span><span class="value" id="social_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Instagram:</span><span class="value" id="instagram_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">LinkedIn:</span><span class="value" id="linkedin_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Other Social:</span><span class="value" id="other_social_print" contenteditable="true"></span></div>
                             </div>
                             <div class="column-section">
                                 <h3>Connection</h3>
@@ -644,6 +717,7 @@
                                 <div class="data-item"><span class="label">Mother:</span><span class="value" id="mother_name_print" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Zodiac:</span><span class="value" id="zodiac_print" contenteditable="true"></span></div>
                                 <div class="data-item"><span class="label">Best Friend:</span><span class="value" id="best_friend_print" contenteditable="true"></span></div>
+                                <div class="data-item"><span class="label">Stay Connect:</span><span class="value" id="stay_connected_print" contenteditable="true"></span></div>
                             </div>
                         </div>
                         
@@ -673,22 +747,26 @@
                             <div class="data-item"><span class="label">Book:</span><span class="value" id="fav_book_print" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Person:</span><span class="value" id="fav_person_print" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Dream:</span><span class="value" id="dream_place_print" contenteditable="true"></span></div>
-                            <div class="data-item"><span class="label">Memory:</span><span class="value" id="memory_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Memory w/me:</span><span class="value" id="memory_print" contenteditable="true"></span></div>
                         </div>
                         
                         <!-- Column 4: Journey -->
                         <div class="column">
                             <h3>Journey</h3>
+                            <div class="data-item"><span class="label">Hometown:</span><span class="value" id="hometown_print" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">10th:</span><span class="value" id="school_10_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">10th City:</span><span class="value" id="school_10_city_print" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">12th:</span><span class="value" id="school_12_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">12th City:</span><span class="value" id="school_12_city_print" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Stream:</span><span class="value" id="stream_12_print" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">College:</span><span class="value" id="college_name_print" contenteditable="true"></span></div>
-                            <div class="data-item"><span class="label">City:</span><span class="value" id="college_city_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Clg City:</span><span class="value" id="college_city_print" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Degree:</span><span class="value" id="degree_print" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Branch:</span><span class="value" id="college_branch_print" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Company:</span><span class="value" id="company_print" contenteditable="true"></span></div>
                             <div class="data-item"><span class="label">Work City:</span><span class="value" id="company_city_print" contenteditable="true"></span></div>
-                            <div class="data-item"><span class="label">Address:</span><span class="value" id="address_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Work Addr:</span><span class="value" id="work_address_print" contenteditable="true"></span></div>
+                            <div class="data-item"><span class="label">Home Addr:</span><span class="value" id="home_address_print" contenteditable="true"></span></div>
                         </div>
                     </div>
                     
@@ -728,13 +806,13 @@
         
         // Field IDs to save (without _print suffix)
         const fieldIds = [
-            'name', 'dob', 'gender', 'phone', 'alt_phone', 'email', 'social',
-            'first_meet', 'relationship', 'father_name', 'mother_name', 'zodiac', 'best_friend',
+            'name', 'dob', 'gender', 'phone', 'alt_phone', 'email', 'instagram', 'linkedin', 'other_social',
+            'first_meet', 'relationship', 'father_name', 'mother_name', 'zodiac', 'best_friend', 'stay_connected',
             'hobbies', 'fav_food', 'fav_chocolate', 'fav_movie', 'fav_song', 'fav_place',
             'fav_color', 'fav_actor', 'fav_actress', 'fav_fruit', 'fav_sweet', 'fav_subject',
             'fav_book', 'fav_person', 'dream_place', 'memory',
-            'school_10', 'school_12', 'stream_12', 'college_name', 'college_city',
-            'degree', 'college_branch', 'company', 'company_city', 'address'
+            'school_10', 'school_10_city', 'school_12', 'school_12_city', 'stream_12', 'college_name', 'college_city',
+            'degree', 'college_branch', 'company', 'company_city', 'work_address', 'home_address', 'hometown'
         ];
         
         // Check if backend is running
@@ -771,8 +849,12 @@
                     data[id] = el?.dataset?.value || '';
                 } else if (id === 'gender') {
                     data[id] = el?.dataset?.value || '';
+                } else if (id === 'zodiac') {
+                    // Zodiac uses select dropdown
+                    data[id] = el?.dataset?.value || '';
                 } else {
-                    data[id] = el ? el.innerHTML : '';
+                    // Regular contenteditable fields
+                    data[id] = el ? el.textContent.trim() : '';
                 }
             });
             
@@ -824,8 +906,16 @@
                             genderSelect.value = value;
                         }
                     }
+                    // Special handling for Zodiac - set select value
+                    else if (id === 'zodiac' && value) {
+                        el.dataset.value = value;
+                        const zodiacSelect = document.getElementById('zodiac-select');
+                        if (zodiacSelect) {
+                            zodiacSelect.value = value;
+                        }
+                    }
                     else {
-                        el.innerHTML = value;
+                        el.textContent = value;
                     }
                     
                     // Mark as saved if has data
@@ -835,7 +925,7 @@
                     }
                 }
                 if (printEl) {
-                    printEl.innerHTML = value;
+                    printEl.textContent = value;
                 }
             });
             // Load main photo
@@ -923,6 +1013,38 @@
             }
         }
         
+        // Export current entry as JSON file
+        function exportCurrentEntry() {
+            const data = collectFormData();
+            
+            // Check if there's any meaningful data
+            if (!data.name || data.name.trim() === '') {
+                showStatus('❌ Please enter at least a name before exporting', false);
+                return;
+            }
+            
+            // Add metadata for import
+            const exportData = {
+                ...data,
+                exportedAt: new Date().toISOString(),
+                version: '1.0'
+            };
+            
+            const dataStr = JSON.stringify(exportData, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            // Clean filename from special characters
+            const cleanName = data.name.replace(/[^a-zA-Z0-9]/g, '_').substring(0, 30);
+            a.download = `friend-${cleanName}-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            showStatus(`📤 Exported: ${data.name}`);
+        }
+        
         // Clear form for new entry
         function newEntry() {
             if (collectFormData().name && !confirm('Start a new entry? Current data will be cleared.')) {
@@ -940,14 +1062,14 @@
                 const el = document.getElementById(id);
                 const printEl = document.getElementById(id + '_print');
                 if (el) {
-                    if (id === 'dob' || id === 'gender') {
+                    if (id === 'dob' || id === 'gender' || id === 'zodiac') {
                         el.dataset.value = '';
                     } else {
-                        el.innerHTML = '';
+                        el.textContent = '';
                     }
                     el.classList.remove('saved-data');
                 }
-                if (printEl) printEl.innerHTML = '';
+                if (printEl) printEl.textContent = '';
             });
             
             // Reset DOB date input
@@ -957,6 +1079,10 @@
             // Reset Gender select
             const genderSelect = document.getElementById('gender-select');
             if (genderSelect) genderSelect.value = '';
+            
+            // Reset Zodiac select
+            const zodiacSelect = document.getElementById('zodiac-select');
+            if (zodiacSelect) zodiacSelect.value = '';
             
             // Clear all photos
             deletePhoto('main-pic-1');
@@ -991,7 +1117,221 @@
                 console.error(error);
             }
         }
+
+        // ===== Dropdown and Autocomplete Functions =====
+        let dropdownValues = {}; // Cached values from database
+        // Fields that use fixed select dropdowns (not autocomplete)
+        const fixedDropdownFields = ['dob', 'gender', 'zodiac'];
+        // Fields that should NOT have autocomplete (personal/unique data)
+        const noAutocompleteFields = ['name', 'phone', 'alt_phone', 'email', 'instagram', 'linkedin', 'other_social', 'work_address', 'home_address', 'memory'];
         
+        // Default values for fields (shown even before any data is saved)
+        const defaultFieldValues = {
+            'first_meet': ['Bright Land School', 'Sri Chaitanya Techno School', 'Sri Chaitanya Junior College', 'KIIT'],
+            'stream_12': ['MPC / PCM', 'BiPC / BiPCM', 'Arts', 'Commerce'],
+            'school_10': ['Bright Land School', 'Sri Chaitanya Techno School'],
+            'school_12': ['Sri Chaitanya Junior College', 'Sri Chaitanya Techno School'],
+            'school_10_city': ['Hyderabad', 'Bhubaneswar', 'Delhi', 'Mumbai', 'Bangalore', 'Chennai'],
+            'school_12_city': ['Hyderabad', 'Bhubaneswar', 'Delhi', 'Mumbai', 'Bangalore', 'Chennai'],
+            'college_name': ['KIIT', 'IIT', 'NIT', 'BITS', 'VIT', 'SRM'],
+            'college_city': ['Bhubaneswar', 'Hyderabad', 'Bangalore', 'Delhi', 'Mumbai', 'Chennai', 'Pune', 'Kolkata'],
+            'company_city': ['Bhubaneswar', 'Hyderabad', 'Bangalore', 'Delhi', 'Mumbai', 'Chennai', 'Pune', 'Kolkata', 'Gurgaon', 'Noida'],
+            'degree': ['B.Tech', 'B.E', 'BCA', 'BBA', 'B.Sc', 'B.Com', 'BA', 'MBBS', 'BDS', 'LLB', 'M.Tech', 'MBA', 'MCA'],
+            'college_branch': ['CSE', 'IT', 'ECE', 'EEE', 'Mechanical', 'Civil', 'Chemical', 'MBBS', 'BDS', 'Biotechnology'],
+            'relationship': ['Best Friend', 'Close Friend', 'Friend', 'Classmate', 'Colleague', 'Roommate', 'Neighbor', 'Senior', 'Junior'],
+            'fav_color': ['Red', 'Blue', 'Green', 'Yellow', 'Pink', 'Purple', 'Orange', 'Black', 'White', 'Maroon', 'Teal', 'Navy'],
+            'hobbies': ['Reading', 'Traveling', 'Music', 'Sports', 'Gaming', 'Cooking', 'Photography', 'Dancing', 'Painting', 'Writing', 'Singing'],
+            'fav_food': ['Pizza', 'Biryani', 'Pasta', 'Burger', 'Chinese', 'South Indian', 'North Indian', 'Paneer'],
+            'fav_chocolate': ['Dairy Milk', 'KitKat', 'Ferrero Rocher', 'Snickers', '5 Star', 'Munch', 'Gems', 'Milky Bar'],
+            'fav_fruit': ['Mango', 'Apple', 'Banana', 'Grapes', 'Orange', 'Watermelon', 'Strawberry', 'Pomegranate'],
+            'fav_sweet': ['Gulab Jamun', 'Rasgulla', 'Jalebi', 'Ladoo', 'Kheer', 'Rasmalai', 'Kaju Katli', 'Peda'],
+            'fav_subject': ['Mathematics', 'Physics', 'Chemistry', 'Biology', 'Computer Science', 'English', 'History', 'Economics'],
+            'stay_connected': ['WhatsApp', 'Instagram', 'Facebook', 'Telegram', 'Discord', 'Signal', 'Phone Call', 'Email']
+        };
+
+        // Load all dropdown values from API
+        async function loadDropdownValues() {
+            try {
+                const response = await fetch(API_BASE + '/values');
+                const result = await response.json();
+                if (result.success) {
+                    dropdownValues = result.values;
+                    console.log('Loaded dropdown values:', Object.keys(dropdownValues).length, 'fields');
+                }
+            } catch (e) {
+                console.log('Could not load dropdown values (backend may not be running)');
+            }
+            
+            // Merge default values with database values
+            Object.keys(defaultFieldValues).forEach(field => {
+                const dbValues = dropdownValues[field] || [];
+                const defaults = defaultFieldValues[field] || [];
+                // Combine: defaults first, then any unique db values
+                const combined = [...defaults];
+                dbValues.forEach(v => {
+                    if (!combined.some(c => c.toLowerCase() === v.toLowerCase())) {
+                        combined.push(v);
+                    }
+                });
+                dropdownValues[field] = combined;
+            });
+        }
+
+        // Update DOB from date picker
+        function updateDOB(input) {
+            const dobSpan = document.getElementById('dob');
+            const dobPrint = document.getElementById('dob_print');
+            const value = input.value;
+            if (value) {
+                const date = new Date(value);
+                const formatted = date.toLocaleDateString('en-IN', { day: '2-digit', month: 'short', year: 'numeric' });
+                dobSpan.dataset.value = formatted;
+                if (dobPrint) dobPrint.textContent = formatted;
+            }
+            dobSpan.classList.remove('saved-data');
+        }
+
+        // Update Gender from select
+        function updateGender(select) {
+            const genderSpan = document.getElementById('gender');
+            const genderPrint = document.getElementById('gender_print');
+            genderSpan.dataset.value = select.value;
+            if (genderPrint) genderPrint.textContent = select.value;
+            genderSpan.classList.remove('saved-data');
+        }
+
+        // Generic dropdown update function
+        function updateDropdown(fieldId, select) {
+            const fieldSpan = document.getElementById(fieldId);
+            const printField = document.getElementById(fieldId + '_print');
+            fieldSpan.dataset.value = select.value;
+            if (printField) printField.textContent = select.value;
+            fieldSpan.classList.remove('saved-data');
+        }
+
+        // Setup autocomplete for a field
+        function setupAutocomplete(fieldId) {
+            const field = document.getElementById(fieldId);
+            // Skip if field doesn't exist, uses fixed dropdown, or is in no-autocomplete list
+            if (!field || fixedDropdownFields.includes(fieldId) || noAutocompleteFields.includes(fieldId)) return;
+
+            // Create dropdown container
+            const dropdown = document.createElement('div');
+            dropdown.className = 'autocomplete-dropdown';
+            dropdown.id = fieldId + '-dropdown';
+            field.parentElement.style.position = 'relative';
+            field.parentElement.appendChild(dropdown);
+
+            let selectedIndex = -1;
+
+            field.addEventListener('focus', () => {
+                selectedIndex = -1;
+                showDropdown(fieldId);
+            });
+            field.addEventListener('input', () => {
+                selectedIndex = -1;
+                showDropdown(fieldId);
+            });
+            field.addEventListener('blur', () => {
+                setTimeout(() => dropdown.classList.remove('show'), 200);
+            });
+            field.addEventListener('keydown', (e) => {
+                const items = dropdown.querySelectorAll('.autocomplete-item');
+                if (!dropdown.classList.contains('show')) return;
+                
+                if (e.key === 'ArrowDown') {
+                    e.preventDefault();
+                    selectedIndex = Math.min(selectedIndex + 1, items.length - 1);
+                    updateSelection(items, selectedIndex);
+                    // Scroll into view
+                    if (items[selectedIndex]) items[selectedIndex].scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'ArrowUp') {
+                    e.preventDefault();
+                    selectedIndex = Math.max(selectedIndex - 1, 0);
+                    updateSelection(items, selectedIndex);
+                    if (items[selectedIndex]) items[selectedIndex].scrollIntoView({ block: 'nearest' });
+                } else if (e.key === 'Enter' && selectedIndex >= 0) {
+                    e.preventDefault();
+                    if (items[selectedIndex]) selectItem(fieldId, items[selectedIndex].textContent);
+                } else if (e.key === 'Escape') {
+                    dropdown.classList.remove('show');
+                } else if (e.key === 'Tab') {
+                    dropdown.classList.remove('show');
+                }
+            });
+        }
+
+        function showDropdown(fieldId) {
+            const field = document.getElementById(fieldId);
+            const dropdown = document.getElementById(fieldId + '-dropdown');
+            if (!dropdown) return;
+
+            const values = dropdownValues[fieldId] || [];
+            if (values.length === 0) {
+                dropdown.classList.remove('show');
+                return;
+            }
+
+            const currentText = (field.textContent || '').toLowerCase().trim();
+            // If empty, show all values; otherwise filter
+            let filtered;
+            if (currentText === '') {
+                filtered = values.slice(0, 15); // Show more options when empty
+            } else {
+                // Show values that start with the text first, then contains
+                const startsWith = values.filter(v => v.toLowerCase().startsWith(currentText));
+                const contains = values.filter(v => !v.toLowerCase().startsWith(currentText) && v.toLowerCase().includes(currentText));
+                filtered = [...startsWith, ...contains].slice(0, 15);
+            }
+
+            if (filtered.length === 0) {
+                dropdown.classList.remove('show');
+                return;
+            }
+
+            dropdown.innerHTML = filtered.map(v => {
+                // Highlight matching text
+                const lowerV = v.toLowerCase();
+                const idx = lowerV.indexOf(currentText);
+                if (currentText && idx >= 0) {
+                    const before = v.substring(0, idx);
+                    const match = v.substring(idx, idx + currentText.length);
+                    const after = v.substring(idx + currentText.length);
+                    return `<div class="autocomplete-item">${escapeHtmlText(before)}<strong>${escapeHtmlText(match)}</strong>${escapeHtmlText(after)}</div>`;
+                }
+                return `<div class="autocomplete-item">${escapeHtmlText(v)}</div>`;
+            }).join('');
+            
+            dropdown.querySelectorAll('.autocomplete-item').forEach(item => {
+                item.addEventListener('mousedown', (e) => {
+                    e.preventDefault();
+                    // Get text without the strong tags
+                    selectItem(fieldId, item.textContent);
+                });
+            });
+            dropdown.classList.add('show');
+        }
+
+        function selectItem(fieldId, value) {
+            const field = document.getElementById(fieldId);
+            const printField = document.getElementById(fieldId + '_print');
+            const dropdown = document.getElementById(fieldId + '-dropdown');
+            field.textContent = value;
+            if (printField) printField.textContent = value;
+            field.classList.remove('saved-data');
+            dropdown.classList.remove('show');
+        }
+
+        function updateSelection(items, index) {
+            items.forEach((item, i) => item.classList.toggle('selected', i === index));
+        }
+
+        function escapeHtmlText(text) {
+            const div = document.createElement('div');
+            div.textContent = text;
+            return div.innerHTML;
+        }
+
         // Photo state storage for zoom/pan
         const photoStates = {};
         
@@ -1163,11 +1503,16 @@
                 // Check for entry ID in URL
                 const urlParams = new URLSearchParams(window.location.search);
                 const editId = urlParams.get('edit');
+                const shouldPrint = urlParams.get('print');
                 if (editId && backendOk) {
                     await loadEntryById(parseInt(editId));
+                    // If print=1 param, trigger print after load
+                    if (shouldPrint === '1') {
+                        setTimeout(() => printPage(1), 500);
+                    }
                 }
-            } catch (error) {
-                console.error('Initialization error:', error);
+            } catch (e) {
+                console.error('Init error:', e);
             }
             
             // Setup drag for all photos
@@ -1180,9 +1525,9 @@
             // Find all editable fields on the first page
             const editableFields = document.querySelectorAll('#page1 [contenteditable="true"]');
             
-            // Setup autocomplete for each editable field
+            // Setup autocomplete for each editable field (except those in exclusion lists)
             editableFields.forEach(field => {
-                if (field.id && field.id !== 'dob' && field.id !== 'gender') {
+                if (field.id) {
                     setupAutocomplete(field.id);
                 }
             });
@@ -1190,27 +1535,27 @@
             // Sync data from page 1 to page 2
             function syncAllData() {
                 editableFields.forEach(field => {
-                    // Skip DOB and Gender - they use inputs, not contenteditable
-                    if (field.id === 'dob' || field.id === 'gender') return;
+                    // Skip DOB, Gender, and Zodiac - they use inputs/selects, not contenteditable
+                    if (field.id === 'dob' || field.id === 'gender' || field.id === 'zodiac') return;
                     const printFieldId = field.id + '_print';
                     const printField = document.getElementById(printFieldId);
                     if (printField) {
-                        printField.innerHTML = field.innerHTML;
+                        printField.textContent = field.textContent;
                     }
                 });
             }
 
             // Add input listener to sync on typing
             editableFields.forEach(field => {
-                // Skip DOB and Gender - they have their own update handlers
-                if (field.id === 'dob' || field.id === 'gender') return;
+                // Skip DOB, Gender, and Zodiac - they have their own update handlers
+                if (field.id === 'dob' || field.id === 'gender' || field.id === 'zodiac') return;
                 field.addEventListener('input', (event) => {
                     // When user types, remove saved-data class (it's now new/changed data)
                     event.target.classList.remove('saved-data');
                     const printFieldId = event.target.id + '_print';
                     const printField = document.getElementById(printFieldId);
                     if (printField) {
-                        printField.innerHTML = event.target.innerHTML;
+                        printField.textContent = event.target.textContent;
                     }
                 });
             });

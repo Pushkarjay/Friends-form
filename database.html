@@ -419,6 +419,7 @@
                         <td class="actions">
                             <button class="btn-info" onclick="viewEntry(${entry.id})" title="View">👁️</button>
                             <button class="btn-primary" onclick="editEntry(${entry.id})" title="Edit">✏️</button>
+                            <button class="btn-success" onclick="printEntry(${entry.id})" title="Print">🖨️</button>
                             <button class="btn-danger" onclick="deleteEntry(${entry.id})" title="Delete">🗑️</button>
                         </td>
                     </tr>
@@ -471,10 +472,10 @@
             if (!entry) return;
             
             const sections = [
-                { title: 'Personal Details', fields: ['name', 'dob', 'gender', 'phone', 'alt_phone', 'email', 'social'] },
-                { title: 'Connection', fields: ['first_meet', 'relationship', 'father_name', 'mother_name', 'zodiac', 'best_friend'] },
+                { title: 'Personal Details', fields: ['name', 'dob', 'gender', 'phone', 'alt_phone', 'email', 'instagram', 'linkedin', 'other_social'] },
+                { title: 'Connection', fields: ['first_meet', 'relationship', 'father_name', 'mother_name', 'zodiac', 'best_friend', 'stay_connected'] },
                 { title: 'Favorites', fields: ['hobbies', 'fav_food', 'fav_chocolate', 'fav_movie', 'fav_song', 'fav_place', 'fav_color'] },
-                { title: 'Journey', fields: ['school_10', 'school_12', 'college_name', 'degree', 'company', 'address'] }
+                { title: 'Journey', fields: ['hometown', 'school_10', 'school_10_city', 'school_12', 'school_12_city', 'college_name', 'college_city', 'degree', 'college_branch', 'company', 'company_city', 'work_address', 'home_address'] }
             ];
             
             let sectionsHtml = sections.map(sec => `
@@ -511,6 +512,7 @@
                     ${photosHtml ? `<div class="detail-photos">${photosHtml}</div>` : ''}
                     <div class="modal-buttons">
                         <button class="btn-primary" onclick="editEntry(${id}); this.closest('.modal-overlay').remove();">✏️ Edit</button>
+                        <button class="btn-success" onclick="printEntry(${id}); this.closest('.modal-overlay').remove();">🖨️ Print</button>
                         <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
                     </div>
                 </div>
@@ -518,7 +520,12 @@
             document.body.appendChild(modal);
             modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
         }
-        
+
+        // Print entry - open in form and trigger print
+        function printEntry(id) {
+            window.open(`index.html?edit=${id}&print=1`, '_blank');
+        }
+
         // Format field label
         function formatLabel(field) {
             return field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
