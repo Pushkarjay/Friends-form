@@ -312,33 +312,18 @@
     </div>
 
     <script>
-        const DB_NAME = 'FriendsFormDB';
-        const DB_VERSION = 1;
-        const STORE_NAME = 'friends';
-        let db = null;
+        const API_BASE = 'http://localhost:3000/api';
         let allEntries = [];
         let currentSort = { field: 'created', desc: true };
         
-        // Initialize database
-        function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => {
-                    db = request.result;
-                    resolve(db);
-                };
-                
-                request.onupgradeneeded = (event) => {
-                    const database = event.target.result;
-                    if (!database.objectStoreNames.contains(STORE_NAME)) {
-                        const store = database.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-                        store.createIndex('name', 'name', { unique: false });
-                        store.createIndex('created', 'created', { unique: false });
-                    }
-                };
-            });
+        // Check if backend is running
+        async function checkBackend() {
+            try {
+                const res = await fetch(`${API_BASE}/entries`, { method: 'GET' });
+                return res.ok;
+            } catch (e) {
+                return false;
+            }
         }
         
         // Show status message
@@ -353,21 +338,34 @@
             setTimeout(() => div.remove(), 3000);
         }
         
-        // Load all entries
+        // Load all entries from API
         async function loadEntries() {
-            if (!db) await initDB();
+            const backendOk = await checkBackend();
+            if (!backendOk) {
+                showStatus('❌ Backend not running! Use START.bat to launch.', false);
+                document.getElementById('stats').textContent = 'Backend not connected';
+                document.getElementById('empty-state').style.display = 'block';
+                document.getElementById('empty-state').innerHTML = `
+                    <h2>⚠️ Backend Not Running</h2>
+                    <p>Please run START.bat from the Friends-form folder to start the server.</p>
+                    <button class="btn-primary" onclick="location.reload()">🔄 Retry</button>
+                `;
+                return [];
+            }
             
-            return new Promise((resolve, reject) => {
-                const transaction = db.transaction([STORE_NAME], 'readonly');
-                const store = transaction.objectStore(STORE_NAME);
-                const request = store.getAll();
+            try {
+                const response = await fetch(`${API_BASE}/entries`);
+                const result = await response.json();
                 
-                request.onsuccess = () => {
-                    allEntries = request.result || [];
-                    resolve(allEntries);
-                };
-                request.onerror = () => reject(request.error);
-            });
+                if (result.success) {
+                    allEntries = result.entries || [];
+                    return allEntries;
+                }
+            } catch (error) {
+                console.error('Error loading:', error);
+                showStatus('Error loading entries', false);
+            }
+            return [];
         }
         
         // Render entries table
@@ -542,15 +540,18 @@
             }
             
             try {
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const store = transaction.objectStore(STORE_NAME);
-                store.delete(id);
+                const response = await fetch(`${API_BASE}/entries/${id}`, {
+                    method: 'DELETE'
+                });
+                const result = await response.json();
                 
-                transaction.oncomplete = async () => {
+                if (result.success) {
                     showStatus(`Deleted: ${name}`);
                     await loadEntries();
                     renderEntries(allEntries);
-                };
+                } else {
+                    showStatus('Error: ' + (result.error || 'Failed to delete'), false);
+                }
             } catch (error) {
                 showStatus('Error deleting: ' + error.message, false);
             }
@@ -582,6 +583,12 @@
             if (!file) return;
             
             try {
+                const backendOk = await checkBackend();
+                if (!backendOk) {
+                    showStatus('❌ Backend not running!', false);
+                    return;
+                }
+                
                 const text = await file.text();
                 const data = JSON.parse(text);
                 
@@ -592,24 +599,24 @@
                 const confirmMsg = `Import ${data.length} entries? This will ADD to existing data.`;
                 if (!confirm(confirmMsg)) return;
                 
-                const transaction = db.transaction([STORE_NAME], 'readwrite');
-                const store = transaction.objectStore(STORE_NAME);
-                
                 let imported = 0;
                 for (const entry of data) {
                     // Remove id to create new entries
                     const newEntry = { ...entry };
                     delete newEntry.id;
                     newEntry.imported = new Date().toISOString();
-                    store.add(newEntry);
+                    
+                    await fetch(`${API_BASE}/entries`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(newEntry)
+                    });
                     imported++;
                 }
                 
-                transaction.oncomplete = async () => {
-                    showStatus(`Imported ${imported} entries`);
-                    await loadEntries();
-                    renderEntries(allEntries);
-                };
+                showStatus(`Imported ${imported} entries`);
+                await loadEntries();
+                renderEntries(allEntries);
             } catch (error) {
                 showStatus('Import error: ' + error.message, false);
             }
@@ -620,7 +627,6 @@
         // Initialize
         document.addEventListener('DOMContentLoaded', async () => {
             try {
-                await initDB();
                 await loadEntries();
                 renderEntries(allEntries);
             } catch (error) {

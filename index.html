@@ -635,11 +635,8 @@
     </div>
 
     <script>
-        // ===== IndexedDB Database Setup =====
-        const DB_NAME = 'FriendsFormDB';
-        const DB_VERSION = 1;
-        const STORE_NAME = 'friends';
-        let db = null;
+        // ===== Backend API Configuration =====
+        const API_BASE = 'http://localhost:3000/api';
         let currentEntryId = null;
         
         // Field IDs to save (without _print suffix)
@@ -653,26 +650,14 @@
             'degree', 'college_branch', 'company', 'company_city', 'address'
         ];
         
-        // Initialize IndexedDB
-        function initDB() {
-            return new Promise((resolve, reject) => {
-                const request = indexedDB.open(DB_NAME, DB_VERSION);
-                
-                request.onerror = () => reject(request.error);
-                request.onsuccess = () => {
-                    db = request.result;
-                    resolve(db);
-                };
-                
-                request.onupgradeneeded = (event) => {
-                    const database = event.target.result;
-                    if (!database.objectStoreNames.contains(STORE_NAME)) {
-                        const store = database.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
-                        store.createIndex('name', 'name', { unique: false });
-                        store.createIndex('created', 'created', { unique: false });
-                    }
-                };
-            });
+        // Check if backend is running
+        async function checkBackend() {
+            try {
+                const res = await fetch(`${API_BASE}/entries`, { method: 'GET' });
+                return res.ok;
+            } catch (e) {
+                return false;
+            }
         }
         
         // Show status message
@@ -690,10 +675,7 @@
         
         // Collect form data
         function collectFormData() {
-            const data = {
-                created: new Date().toISOString(),
-                updated: new Date().toISOString()
-            };
+            const data = {};
             
             fieldIds.forEach(id => {
                 const el = document.getElementById(id);
@@ -761,45 +743,47 @@
             }
         }
         
-        // Save entry to database
+        // Save entry to database via API
         async function saveEntry() {
             try {
-                if (!db) await initDB();
+                const backendOk = await checkBackend();
+                if (!backendOk) {
+                    showStatus('❌ Backend not running! Use START.bat to launch.', false);
+                    alert('Backend server is not running!\n\nPlease run START.bat from the Friends-form folder to start the server.');
+                    return;
+                }
                 
                 const data = collectFormData();
                 
-                return new Promise((resolve, reject) => {
-                    const transaction = db.transaction([STORE_NAME], 'readwrite');
-                    const store = transaction.objectStore(STORE_NAME);
-                    
-                    if (currentEntryId) {
-                        data.id = currentEntryId;
-                        data.updated = new Date().toISOString();
-                        // Keep original created date
-                        const getReq = store.get(currentEntryId);
-                        getReq.onsuccess = () => {
-                            if (getReq.result) {
-                                data.created = getReq.result.created;
-                            }
-                            const putReq = store.put(data);
-                            putReq.onsuccess = () => {
-                                showStatus(`Updated: ${data.name || 'Entry'}`);
-                                resolve(putReq.result);
-                            };
-                            putReq.onerror = () => reject(putReq.error);
-                        };
-                    } else {
-                        const addReq = store.add(data);
-                        addReq.onsuccess = () => {
-                            currentEntryId = addReq.result;
-                            showStatus(`Saved: ${data.name || 'New Entry'}`);
-                            resolve(addReq.result);
-                        };
-                        addReq.onerror = () => reject(addReq.error);
+                let response;
+                if (currentEntryId) {
+                    // Update existing entry
+                    response = await fetch(`${API_BASE}/entries/${currentEntryId}`, {
+                        method: 'PUT',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                } else {
+                    // Create new entry
+                    response = await fetch(`${API_BASE}/entries`, {
+                        method: 'POST',
+                        headers: { 'Content-Type': 'application/json' },
+                        body: JSON.stringify(data)
+                    });
+                }
+                
+                const result = await response.json();
+                
+                if (result.success) {
+                    if (!currentEntryId) {
+                        currentEntryId = result.id;
                     }
-                });
+                    showStatus(`✅ Saved: ${data.name || 'Entry'} (ID: ${currentEntryId})`);
+                } else {
+                    showStatus('❌ Error: ' + (result.error || 'Failed to save'), false);
+                }
             } catch (error) {
-                showStatus('Error saving: ' + error.message, false);
+                showStatus('❌ Error saving: ' + error.message, false);
                 console.error(error);
             }
         }
@@ -829,29 +813,25 @@
             showStatus('New entry started');
         }
         
-        // Load entry by ID (called from URL parameter)
+        // Load entry by ID via API
         async function loadEntryById(id) {
             try {
-                if (!db) await initDB();
+                const backendOk = await checkBackend();
+                if (!backendOk) {
+                    showStatus('❌ Backend not running! Use START.bat to launch.', false);
+                    return;
+                }
                 
-                return new Promise((resolve, reject) => {
-                    const transaction = db.transaction([STORE_NAME], 'readonly');
-                    const store = transaction.objectStore(STORE_NAME);
-                    const request = store.get(id);
-                    
-                    request.onsuccess = () => {
-                        if (request.result) {
-                            currentEntryId = id;
-                            loadFormData(request.result);
-                            showStatus(`Loaded: ${request.result.name || 'Entry'}`);
-                            resolve(request.result);
-                        } else {
-                            showStatus('Entry not found', false);
-                            reject(new Error('Entry not found'));
-                        }
-                    };
-                    request.onerror = () => reject(request.error);
-                });
+                const response = await fetch(`${API_BASE}/entries/${id}`);
+                const result = await response.json();
+                
+                if (result.success && result.entry) {
+                    currentEntryId = id;
+                    loadFormData(result.entry);
+                    showStatus(`✅ Loaded: ${result.entry.name || 'Entry'}`);
+                } else {
+                    showStatus('Entry not found', false);
+                }
             } catch (error) {
                 showStatus('Error loading: ' + error.message, false);
                 console.error(error);
@@ -1015,19 +995,21 @@
         }
 
         document.addEventListener('DOMContentLoaded', async function() {
-            // Initialize database
+            // Check backend connection
             try {
-                await initDB();
-                console.log('Database initialized');
+                const backendOk = await checkBackend();
+                if (!backendOk) {
+                    console.warn('Backend not running - save functionality disabled');
+                }
                 
                 // Check for entry ID in URL
                 const urlParams = new URLSearchParams(window.location.search);
                 const editId = urlParams.get('edit');
-                if (editId) {
+                if (editId && backendOk) {
                     await loadEntryById(parseInt(editId));
                 }
             } catch (error) {
-                console.error('Database error:', error);
+                console.error('Initialization error:', error);
             }
             
             // Setup drag for all photos
