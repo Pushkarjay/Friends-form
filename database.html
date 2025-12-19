@@ -1,0 +1,633 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Friends Database - View & Edit</title>
+    <style>
+        * {
+            box-sizing: border-box;
+        }
+        body {
+            font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+            background-color: #f5f5f5;
+            margin: 0;
+            padding: 20px;
+            color: #333;
+        }
+        .header {
+            display: flex;
+            justify-content: space-between;
+            align-items: center;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+            gap: 10px;
+        }
+        h1 {
+            margin: 0;
+            color: #2c3e50;
+        }
+        .stats {
+            color: #666;
+            font-size: 14px;
+        }
+        .button-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+        }
+        button {
+            padding: 10px 20px;
+            font-size: 14px;
+            cursor: pointer;
+            border: none;
+            color: white;
+            border-radius: 5px;
+            transition: background-color 0.3s;
+        }
+        .btn-primary { background-color: #007bff; }
+        .btn-primary:hover { background-color: #0056b3; }
+        .btn-success { background-color: #28a745; }
+        .btn-success:hover { background-color: #1e7e34; }
+        .btn-danger { background-color: #dc3545; }
+        .btn-danger:hover { background-color: #c82333; }
+        .btn-info { background-color: #17a2b8; }
+        .btn-info:hover { background-color: #117a8b; }
+        .btn-warning { background-color: #ffc107; color: #333; }
+        .btn-warning:hover { background-color: #e0a800; }
+        .btn-secondary { background-color: #6c757d; }
+        .btn-secondary:hover { background-color: #545b62; }
+        
+        /* Search and Filter */
+        .search-bar {
+            display: flex;
+            gap: 10px;
+            margin-bottom: 20px;
+            flex-wrap: wrap;
+        }
+        .search-bar input {
+            padding: 10px 15px;
+            font-size: 14px;
+            border: 1px solid #ddd;
+            border-radius: 5px;
+            flex: 1;
+            min-width: 200px;
+        }
+        .search-bar input:focus {
+            outline: none;
+            border-color: #007bff;
+        }
+        
+        /* Table */
+        .table-container {
+            background: white;
+            border-radius: 10px;
+            box-shadow: 0 2px 10px rgba(0,0,0,0.1);
+            overflow: hidden;
+        }
+        table {
+            width: 100%;
+            border-collapse: collapse;
+        }
+        th, td {
+            padding: 12px 15px;
+            text-align: left;
+            border-bottom: 1px solid #eee;
+        }
+        th {
+            background-color: #2c3e50;
+            color: white;
+            font-weight: 500;
+            position: sticky;
+            top: 0;
+            cursor: pointer;
+        }
+        th:hover {
+            background-color: #34495e;
+        }
+        th .sort-icon {
+            margin-left: 5px;
+            opacity: 0.5;
+        }
+        th.sorted .sort-icon {
+            opacity: 1;
+        }
+        tr:hover {
+            background-color: #f8f9fa;
+        }
+        tr.selected {
+            background-color: #e3f2fd;
+        }
+        .photo-thumb {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            object-fit: cover;
+            border: 2px solid #eee;
+        }
+        .no-photo {
+            width: 40px;
+            height: 40px;
+            border-radius: 50%;
+            background-color: #eee;
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            color: #999;
+            font-size: 18px;
+        }
+        .actions {
+            display: flex;
+            gap: 5px;
+        }
+        .actions button {
+            padding: 5px 10px;
+            font-size: 12px;
+        }
+        
+        /* Empty state */
+        .empty-state {
+            text-align: center;
+            padding: 60px 20px;
+            color: #999;
+        }
+        .empty-state h2 {
+            margin: 0 0 10px 0;
+            font-size: 24px;
+        }
+        .empty-state p {
+            margin: 0 0 20px 0;
+        }
+        
+        /* Modal */
+        .modal-overlay {
+            position: fixed;
+            top: 0;
+            left: 0;
+            right: 0;
+            bottom: 0;
+            background: rgba(0,0,0,0.5);
+            display: flex;
+            align-items: center;
+            justify-content: center;
+            z-index: 1000;
+        }
+        .modal {
+            background: white;
+            border-radius: 10px;
+            padding: 30px;
+            max-width: 500px;
+            width: 90%;
+            max-height: 80vh;
+            overflow-y: auto;
+        }
+        .modal h2 {
+            margin: 0 0 20px 0;
+        }
+        .modal-buttons {
+            display: flex;
+            gap: 10px;
+            justify-content: flex-end;
+            margin-top: 20px;
+        }
+        
+        /* Detail View */
+        .detail-modal {
+            max-width: 800px;
+        }
+        .detail-grid {
+            display: grid;
+            grid-template-columns: repeat(auto-fit, minmax(200px, 1fr));
+            gap: 15px;
+        }
+        .detail-section {
+            background: #f8f9fa;
+            padding: 15px;
+            border-radius: 5px;
+        }
+        .detail-section h3 {
+            margin: 0 0 10px 0;
+            color: #2c3e50;
+            font-size: 14px;
+            border-bottom: 1px solid #ddd;
+            padding-bottom: 5px;
+        }
+        .detail-item {
+            display: flex;
+            margin-bottom: 5px;
+            font-size: 13px;
+        }
+        .detail-item .label {
+            font-weight: bold;
+            min-width: 80px;
+            color: #666;
+        }
+        .detail-photos {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            margin-top: 15px;
+        }
+        .detail-photos img {
+            width: 100px;
+            height: 100px;
+            object-fit: cover;
+            border-radius: 5px;
+            border: 1px solid #ddd;
+        }
+        
+        /* Status message */
+        .status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1001;
+            animation: fadeInOut 3s forwards;
+        }
+        .status-message.success { background-color: #28a745; }
+        .status-message.error { background-color: #dc3545; }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
+        }
+        
+        /* Responsive */
+        @media (max-width: 768px) {
+            .table-container {
+                overflow-x: auto;
+            }
+            th, td {
+                padding: 8px 10px;
+                font-size: 13px;
+            }
+        }
+    </style>
+</head>
+<body>
+    <div class="header">
+        <div>
+            <h1>📁 Friends Database</h1>
+            <div class="stats" id="stats">Loading...</div>
+        </div>
+        <div class="button-bar">
+            <button class="btn-success" onclick="window.location.href='index.html'">➕ Add New Entry</button>
+            <button class="btn-warning" onclick="exportDatabase()">📤 Export JSON</button>
+            <button class="btn-info" onclick="document.getElementById('import-input').click()">📥 Import JSON</button>
+            <input type="file" id="import-input" accept=".json" style="display:none" onchange="importDatabase(event)">
+        </div>
+    </div>
+    
+    <div class="search-bar">
+        <input type="text" id="search-input" placeholder="🔍 Search by name, phone, email..." oninput="filterEntries()">
+    </div>
+    
+    <div class="table-container">
+        <table id="entries-table">
+            <thead>
+                <tr>
+                    <th onclick="sortBy('id')"># <span class="sort-icon">↕</span></th>
+                    <th>Photo</th>
+                    <th onclick="sortBy('name')">Name <span class="sort-icon">↕</span></th>
+                    <th onclick="sortBy('phone')">Phone <span class="sort-icon">↕</span></th>
+                    <th onclick="sortBy('email')">Email <span class="sort-icon">↕</span></th>
+                    <th onclick="sortBy('relationship')">Relation <span class="sort-icon">↕</span></th>
+                    <th onclick="sortBy('created')">Created <span class="sort-icon">↕</span></th>
+                    <th>Actions</th>
+                </tr>
+            </thead>
+            <tbody id="entries-body">
+            </tbody>
+        </table>
+        <div class="empty-state" id="empty-state" style="display:none">
+            <h2>No entries yet</h2>
+            <p>Start adding friends to your database!</p>
+            <button class="btn-success" onclick="window.location.href='index.html'">➕ Add First Entry</button>
+        </div>
+    </div>
+
+    <script>
+        const DB_NAME = 'FriendsFormDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'friends';
+        let db = null;
+        let allEntries = [];
+        let currentSort = { field: 'created', desc: true };
+        
+        // Initialize database
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const database = event.target.result;
+                    if (!database.objectStoreNames.contains(STORE_NAME)) {
+                        const store = database.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        store.createIndex('name', 'name', { unique: false });
+                        store.createIndex('created', 'created', { unique: false });
+                    }
+                };
+            });
+        }
+        
+        // Show status message
+        function showStatus(message, isSuccess = true) {
+            const existing = document.querySelector('.status-message');
+            if (existing) existing.remove();
+            
+            const div = document.createElement('div');
+            div.className = `status-message ${isSuccess ? 'success' : 'error'}`;
+            div.textContent = message;
+            document.body.appendChild(div);
+            setTimeout(() => div.remove(), 3000);
+        }
+        
+        // Load all entries
+        async function loadEntries() {
+            if (!db) await initDB();
+            
+            return new Promise((resolve, reject) => {
+                const transaction = db.transaction([STORE_NAME], 'readonly');
+                const store = transaction.objectStore(STORE_NAME);
+                const request = store.getAll();
+                
+                request.onsuccess = () => {
+                    allEntries = request.result || [];
+                    resolve(allEntries);
+                };
+                request.onerror = () => reject(request.error);
+            });
+        }
+        
+        // Render entries table
+        function renderEntries(entries) {
+            const tbody = document.getElementById('entries-body');
+            const emptyState = document.getElementById('empty-state');
+            const stats = document.getElementById('stats');
+            
+            stats.textContent = `${entries.length} entries in database`;
+            
+            if (entries.length === 0) {
+                tbody.innerHTML = '';
+                emptyState.style.display = 'block';
+                return;
+            }
+            
+            emptyState.style.display = 'none';
+            
+            // Sort entries
+            entries.sort((a, b) => {
+                let aVal = a[currentSort.field] || '';
+                let bVal = b[currentSort.field] || '';
+                if (currentSort.field === 'created' || currentSort.field === 'id') {
+                    aVal = typeof aVal === 'string' ? new Date(aVal).getTime() : aVal;
+                    bVal = typeof bVal === 'string' ? new Date(bVal).getTime() : bVal;
+                }
+                if (typeof aVal === 'string') aVal = aVal.toLowerCase();
+                if (typeof bVal === 'string') bVal = bVal.toLowerCase();
+                
+                if (aVal < bVal) return currentSort.desc ? 1 : -1;
+                if (aVal > bVal) return currentSort.desc ? -1 : 1;
+                return 0;
+            });
+            
+            tbody.innerHTML = entries.map(entry => {
+                const photoHtml = entry.mainPhoto && entry.mainPhoto.startsWith('data:') 
+                    ? `<img src="${entry.mainPhoto}" class="photo-thumb" alt="">`
+                    : `<div class="no-photo">👤</div>`;
+                
+                const createdDate = entry.created ? new Date(entry.created).toLocaleDateString() : '-';
+                
+                return `
+                    <tr data-id="${entry.id}">
+                        <td>${entry.id}</td>
+                        <td>${photoHtml}</td>
+                        <td>${escapeHtml(entry.name) || '<em>No name</em>'}</td>
+                        <td>${escapeHtml(entry.phone) || '-'}</td>
+                        <td>${escapeHtml(entry.email) || '-'}</td>
+                        <td>${escapeHtml(entry.relationship) || '-'}</td>
+                        <td>${createdDate}</td>
+                        <td class="actions">
+                            <button class="btn-info" onclick="viewEntry(${entry.id})" title="View">👁️</button>
+                            <button class="btn-primary" onclick="editEntry(${entry.id})" title="Edit">✏️</button>
+                            <button class="btn-danger" onclick="deleteEntry(${entry.id})" title="Delete">🗑️</button>
+                        </td>
+                    </tr>
+                `;
+            }).join('');
+        }
+        
+        // Escape HTML
+        function escapeHtml(text) {
+            if (!text) return '';
+            const div = document.createElement('div');
+            div.textContent = text.replace(/<[^>]*>/g, '');
+            return div.innerHTML;
+        }
+        
+        // Sort by column
+        function sortBy(field) {
+            if (currentSort.field === field) {
+                currentSort.desc = !currentSort.desc;
+            } else {
+                currentSort.field = field;
+                currentSort.desc = true;
+            }
+            renderEntries(allEntries);
+        }
+        
+        // Filter entries
+        function filterEntries() {
+            const search = document.getElementById('search-input').value.toLowerCase().trim();
+            
+            if (!search) {
+                renderEntries(allEntries);
+                return;
+            }
+            
+            const filtered = allEntries.filter(entry => {
+                const searchFields = ['name', 'phone', 'alt_phone', 'email', 'relationship', 'address', 'company'];
+                return searchFields.some(field => {
+                    const val = (entry[field] || '').toString().toLowerCase();
+                    return val.includes(search);
+                });
+            });
+            
+            renderEntries(filtered);
+        }
+        
+        // View entry details
+        function viewEntry(id) {
+            const entry = allEntries.find(e => e.id === id);
+            if (!entry) return;
+            
+            const sections = [
+                { title: 'Personal Details', fields: ['name', 'dob', 'gender', 'phone', 'alt_phone', 'email', 'social'] },
+                { title: 'Connection', fields: ['first_meet', 'relationship', 'father_name', 'mother_name', 'zodiac', 'best_friend'] },
+                { title: 'Favorites', fields: ['hobbies', 'fav_food', 'fav_chocolate', 'fav_movie', 'fav_song', 'fav_place', 'fav_color'] },
+                { title: 'Journey', fields: ['school_10', 'school_12', 'college_name', 'degree', 'company', 'address'] }
+            ];
+            
+            let sectionsHtml = sections.map(sec => `
+                <div class="detail-section">
+                    <h3>${sec.title}</h3>
+                    ${sec.fields.map(f => `
+                        <div class="detail-item">
+                            <span class="label">${formatLabel(f)}:</span>
+                            <span>${escapeHtml(entry[f]) || '-'}</span>
+                        </div>
+                    `).join('')}
+                </div>
+            `).join('');
+            
+            // Photos
+            let photosHtml = '';
+            if (entry.mainPhoto && entry.mainPhoto.startsWith('data:')) {
+                photosHtml += `<img src="${entry.mainPhoto}" alt="Main photo">`;
+            }
+            if (entry.photos) {
+                entry.photos.forEach((p, i) => {
+                    if (p && p.startsWith('data:')) {
+                        photosHtml += `<img src="${p}" alt="Photo ${i+1}">`;
+                    }
+                });
+            }
+            
+            const modal = document.createElement('div');
+            modal.className = 'modal-overlay';
+            modal.innerHTML = `
+                <div class="modal detail-modal">
+                    <h2>👤 ${escapeHtml(entry.name) || 'Entry Details'}</h2>
+                    <div class="detail-grid">${sectionsHtml}</div>
+                    ${photosHtml ? `<div class="detail-photos">${photosHtml}</div>` : ''}
+                    <div class="modal-buttons">
+                        <button class="btn-primary" onclick="editEntry(${id}); this.closest('.modal-overlay').remove();">✏️ Edit</button>
+                        <button class="btn-secondary" onclick="this.closest('.modal-overlay').remove()">Close</button>
+                    </div>
+                </div>
+            `;
+            document.body.appendChild(modal);
+            modal.onclick = (e) => { if (e.target === modal) modal.remove(); };
+        }
+        
+        // Format field label
+        function formatLabel(field) {
+            return field.replace(/_/g, ' ').replace(/\b\w/g, l => l.toUpperCase())
+                .replace('Fav ', '').replace('Alt ', 'Alt ');
+        }
+        
+        // Edit entry - open in form
+        function editEntry(id) {
+            window.location.href = `index.html?edit=${id}`;
+        }
+        
+        // Delete entry
+        async function deleteEntry(id) {
+            const entry = allEntries.find(e => e.id === id);
+            const name = entry?.name || 'this entry';
+            
+            if (!confirm(`Are you sure you want to delete "${name}"?`)) {
+                return;
+            }
+            
+            try {
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                store.delete(id);
+                
+                transaction.oncomplete = async () => {
+                    showStatus(`Deleted: ${name}`);
+                    await loadEntries();
+                    renderEntries(allEntries);
+                };
+            } catch (error) {
+                showStatus('Error deleting: ' + error.message, false);
+            }
+        }
+        
+        // Export database to JSON
+        function exportDatabase() {
+            if (allEntries.length === 0) {
+                showStatus('No entries to export', false);
+                return;
+            }
+            
+            const dataStr = JSON.stringify(allEntries, null, 2);
+            const blob = new Blob([dataStr], { type: 'application/json' });
+            const url = URL.createObjectURL(blob);
+            
+            const a = document.createElement('a');
+            a.href = url;
+            a.download = `friends-database-${new Date().toISOString().split('T')[0]}.json`;
+            a.click();
+            
+            URL.revokeObjectURL(url);
+            showStatus(`Exported ${allEntries.length} entries`);
+        }
+        
+        // Import database from JSON
+        async function importDatabase(event) {
+            const file = event.target.files[0];
+            if (!file) return;
+            
+            try {
+                const text = await file.text();
+                const data = JSON.parse(text);
+                
+                if (!Array.isArray(data)) {
+                    throw new Error('Invalid format: expected array');
+                }
+                
+                const confirmMsg = `Import ${data.length} entries? This will ADD to existing data.`;
+                if (!confirm(confirmMsg)) return;
+                
+                const transaction = db.transaction([STORE_NAME], 'readwrite');
+                const store = transaction.objectStore(STORE_NAME);
+                
+                let imported = 0;
+                for (const entry of data) {
+                    // Remove id to create new entries
+                    const newEntry = { ...entry };
+                    delete newEntry.id;
+                    newEntry.imported = new Date().toISOString();
+                    store.add(newEntry);
+                    imported++;
+                }
+                
+                transaction.oncomplete = async () => {
+                    showStatus(`Imported ${imported} entries`);
+                    await loadEntries();
+                    renderEntries(allEntries);
+                };
+            } catch (error) {
+                showStatus('Import error: ' + error.message, false);
+            }
+            
+            event.target.value = '';
+        }
+        
+        // Initialize
+        document.addEventListener('DOMContentLoaded', async () => {
+            try {
+                await initDB();
+                await loadEntries();
+                renderEntries(allEntries);
+            } catch (error) {
+                console.error('Error:', error);
+                showStatus('Error loading database', false);
+            }
+        });
+    </script>
+</body>
+</html>

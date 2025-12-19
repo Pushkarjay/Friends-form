@@ -234,19 +234,68 @@
             display: none;
         }
         
-        /* Print Button */
-        .print-button {
+        /* Buttons */
+        .button-bar {
+            display: flex;
+            gap: 10px;
+            flex-wrap: wrap;
+            justify-content: center;
+        }
+        .print-button, .save-button, .new-button, .db-button {
             padding: 10px 20px;
             font-size: 16px;
             cursor: pointer;
             border: none;
-            background-color: #007bff;
             color: white;
             border-radius: 5px;
             transition: background-color 0.3s;
         }
+        .print-button {
+            background-color: #007bff;
+        }
         .print-button:hover {
             background-color: #0056b3;
+        }
+        .save-button {
+            background-color: #28a745;
+        }
+        .save-button:hover {
+            background-color: #1e7e34;
+        }
+        .new-button {
+            background-color: #6c757d;
+        }
+        .new-button:hover {
+            background-color: #545b62;
+        }
+        .db-button {
+            background-color: #17a2b8;
+        }
+        .db-button:hover {
+            background-color: #117a8b;
+        }
+        .status-message {
+            position: fixed;
+            top: 20px;
+            right: 20px;
+            padding: 15px 25px;
+            border-radius: 5px;
+            color: white;
+            font-weight: bold;
+            z-index: 1000;
+            animation: fadeInOut 3s forwards;
+        }
+        .status-message.success {
+            background-color: #28a745;
+        }
+        .status-message.error {
+            background-color: #dc3545;
+        }
+        @keyframes fadeInOut {
+            0% { opacity: 0; transform: translateY(-20px); }
+            10% { opacity: 1; transform: translateY(0); }
+            80% { opacity: 1; }
+            100% { opacity: 0; }
         }
 
         /* ---- PRINT STYLES ---- */
@@ -346,7 +395,12 @@
         <!-- PAGE 1: TEMPLATE -->
         <div class="page-wrapper" id="page-1-wrapper">
             <h2>Page 1: Template (with Labels)</h2>
-            <button class="print-button" onclick="printPage(1)">Print Page 1</button>
+            <div class="button-bar">
+                <button class="save-button" onclick="saveEntry()">💾 Save Entry</button>
+                <button class="new-button" onclick="newEntry()">📄 New Entry</button>
+                <button class="db-button" onclick="window.open('database.html', '_blank')">📁 View Database</button>
+                <button class="print-button" onclick="printPage(1)">🖨️ Print Page 1</button>
+            </div>
             <div class="a4-page" id="page1">
                 <div class="page-content">
                     <!-- Row 1: 4 Columns with Data -->
@@ -478,7 +532,9 @@
         <!-- PAGE 2: PRINTING PATH -->
         <div class="page-wrapper" id="page-2-wrapper">
             <h2>Page 2: Printing Path (Data Only)</h2>
-            <button class="print-button" onclick="printPage(2)">Print Page 2</button>
+            <div class="button-bar">
+                <button class="print-button" onclick="printPage(2)">🖨️ Print Page 2</button>
+            </div>
             <div class="a4-page" id="page2">
                 <div class="page-content">
                     <!-- Row 1: 4 Columns with Data -->
@@ -579,6 +635,229 @@
     </div>
 
     <script>
+        // ===== IndexedDB Database Setup =====
+        const DB_NAME = 'FriendsFormDB';
+        const DB_VERSION = 1;
+        const STORE_NAME = 'friends';
+        let db = null;
+        let currentEntryId = null;
+        
+        // Field IDs to save (without _print suffix)
+        const fieldIds = [
+            'name', 'dob', 'gender', 'phone', 'alt_phone', 'email', 'social',
+            'first_meet', 'relationship', 'father_name', 'mother_name', 'zodiac', 'best_friend',
+            'hobbies', 'fav_food', 'fav_chocolate', 'fav_movie', 'fav_song', 'fav_place',
+            'fav_color', 'fav_actor', 'fav_actress', 'fav_fruit', 'fav_sweet', 'fav_subject',
+            'fav_book', 'fav_person', 'dream_place', 'memory',
+            'school_10', 'school_12', 'stream_12', 'college_name', 'college_city',
+            'degree', 'college_branch', 'company', 'company_city', 'address'
+        ];
+        
+        // Initialize IndexedDB
+        function initDB() {
+            return new Promise((resolve, reject) => {
+                const request = indexedDB.open(DB_NAME, DB_VERSION);
+                
+                request.onerror = () => reject(request.error);
+                request.onsuccess = () => {
+                    db = request.result;
+                    resolve(db);
+                };
+                
+                request.onupgradeneeded = (event) => {
+                    const database = event.target.result;
+                    if (!database.objectStoreNames.contains(STORE_NAME)) {
+                        const store = database.createObjectStore(STORE_NAME, { keyPath: 'id', autoIncrement: true });
+                        store.createIndex('name', 'name', { unique: false });
+                        store.createIndex('created', 'created', { unique: false });
+                    }
+                };
+            });
+        }
+        
+        // Show status message
+        function showStatus(message, isSuccess = true) {
+            const existing = document.querySelector('.status-message');
+            if (existing) existing.remove();
+            
+            const div = document.createElement('div');
+            div.className = `status-message ${isSuccess ? 'success' : 'error'}`;
+            div.textContent = message;
+            document.body.appendChild(div);
+            
+            setTimeout(() => div.remove(), 3000);
+        }
+        
+        // Collect form data
+        function collectFormData() {
+            const data = {
+                created: new Date().toISOString(),
+                updated: new Date().toISOString()
+            };
+            
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                data[id] = el ? el.innerHTML : '';
+            });
+            
+            // Save photos as base64
+            data.mainPhoto = document.getElementById('main-pic-1')?.src || '';
+            data.photos = [];
+            for (let i = 1; i <= 4; i++) {
+                const img = document.getElementById(`extra-${i}-page1`);
+                data.photos.push(img?.src || '');
+            }
+            
+            // Save photo states (zoom/pan)
+            data.photoStates = JSON.parse(JSON.stringify(photoStates));
+            
+            return data;
+        }
+        
+        // Load data into form
+        function loadFormData(data) {
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                const printEl = document.getElementById(id + '_print');
+                if (el) {
+                    el.innerHTML = data[id] || '';
+                }
+                if (printEl) {
+                    printEl.innerHTML = data[id] || '';
+                }
+            });
+            
+            // Load main photo
+            if (data.mainPhoto && data.mainPhoto.startsWith('data:')) {
+                const img1 = document.getElementById('main-pic-1');
+                const img2 = document.getElementById('main-pic-2');
+                img1.src = data.mainPhoto;
+                img2.src = data.mainPhoto;
+                document.getElementById('main-photo-1').classList.add('has-photo');
+                document.getElementById('main-photo-2').classList.add('has-photo');
+                document.querySelectorAll('#main-photo-1 .photo-placeholder, #main-photo-2 .photo-placeholder').forEach(p => p.style.display = 'none');
+                img1.onload = () => fitPhotoToContainer('main-pic-1');
+            }
+            
+            // Load extra photos
+            if (data.photos) {
+                data.photos.forEach((src, i) => {
+                    if (src && src.startsWith('data:')) {
+                        const img1 = document.getElementById(`extra-${i+1}-page1`);
+                        const img2 = document.getElementById(`extra-${i+1}-page2`);
+                        img1.src = src;
+                        img2.src = src;
+                        img1.parentElement.querySelector('.photo-placeholder').style.display = 'none';
+                        img2.parentElement.querySelector('.photo-placeholder').style.display = 'none';
+                        img1.onload = () => fitPhotoToContainer(`extra-${i+1}-page1`);
+                    }
+                });
+            }
+            
+            // Restore photo states
+            if (data.photoStates) {
+                Object.assign(photoStates, data.photoStates);
+                Object.keys(photoStates).forEach(imgId => applyPhotoTransform(imgId));
+            }
+        }
+        
+        // Save entry to database
+        async function saveEntry() {
+            try {
+                if (!db) await initDB();
+                
+                const data = collectFormData();
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([STORE_NAME], 'readwrite');
+                    const store = transaction.objectStore(STORE_NAME);
+                    
+                    if (currentEntryId) {
+                        data.id = currentEntryId;
+                        data.updated = new Date().toISOString();
+                        // Keep original created date
+                        const getReq = store.get(currentEntryId);
+                        getReq.onsuccess = () => {
+                            if (getReq.result) {
+                                data.created = getReq.result.created;
+                            }
+                            const putReq = store.put(data);
+                            putReq.onsuccess = () => {
+                                showStatus(`Updated: ${data.name || 'Entry'}`);
+                                resolve(putReq.result);
+                            };
+                            putReq.onerror = () => reject(putReq.error);
+                        };
+                    } else {
+                        const addReq = store.add(data);
+                        addReq.onsuccess = () => {
+                            currentEntryId = addReq.result;
+                            showStatus(`Saved: ${data.name || 'New Entry'}`);
+                            resolve(addReq.result);
+                        };
+                        addReq.onerror = () => reject(addReq.error);
+                    }
+                });
+            } catch (error) {
+                showStatus('Error saving: ' + error.message, false);
+                console.error(error);
+            }
+        }
+        
+        // Clear form for new entry
+        function newEntry() {
+            if (collectFormData().name && !confirm('Start a new entry? Current data will be cleared.')) {
+                return;
+            }
+            
+            currentEntryId = null;
+            
+            // Clear all fields
+            fieldIds.forEach(id => {
+                const el = document.getElementById(id);
+                const printEl = document.getElementById(id + '_print');
+                if (el) el.innerHTML = '';
+                if (printEl) printEl.innerHTML = '';
+            });
+            
+            // Clear all photos
+            deletePhoto('main-pic-1');
+            for (let i = 1; i <= 4; i++) {
+                deletePhoto(`extra-${i}-page1`);
+            }
+            
+            showStatus('New entry started');
+        }
+        
+        // Load entry by ID (called from URL parameter)
+        async function loadEntryById(id) {
+            try {
+                if (!db) await initDB();
+                
+                return new Promise((resolve, reject) => {
+                    const transaction = db.transaction([STORE_NAME], 'readonly');
+                    const store = transaction.objectStore(STORE_NAME);
+                    const request = store.get(id);
+                    
+                    request.onsuccess = () => {
+                        if (request.result) {
+                            currentEntryId = id;
+                            loadFormData(request.result);
+                            showStatus(`Loaded: ${request.result.name || 'Entry'}`);
+                            resolve(request.result);
+                        } else {
+                            showStatus('Entry not found', false);
+                            reject(new Error('Entry not found'));
+                        }
+                    };
+                    request.onerror = () => reject(request.error);
+                });
+            } catch (error) {
+                showStatus('Error loading: ' + error.message, false);
+                console.error(error);
+            }
+        }
+        
         // Photo state storage for zoom/pan
         const photoStates = {};
         
@@ -735,7 +1014,22 @@
             applyPhotoTransform(imgId);
         }
 
-        document.addEventListener('DOMContentLoaded', function() {
+        document.addEventListener('DOMContentLoaded', async function() {
+            // Initialize database
+            try {
+                await initDB();
+                console.log('Database initialized');
+                
+                // Check for entry ID in URL
+                const urlParams = new URLSearchParams(window.location.search);
+                const editId = urlParams.get('edit');
+                if (editId) {
+                    await loadEntryById(parseInt(editId));
+                }
+            } catch (error) {
+                console.error('Database error:', error);
+            }
+            
             // Setup drag for all photos
             setupPhotoDrag('main-pic-1');
             setupPhotoDrag('extra-1-page1');
