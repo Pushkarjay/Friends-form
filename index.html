@@ -298,6 +298,27 @@
             100% { opacity: 0; }
         }
 
+        /* Saved/Old data styling - shows data loaded from database */
+        .value.saved-data {
+            color: #999;
+            background-color: #f5f5f5;
+        }
+        .photo-container.saved-photo,
+        .main-photo.saved-photo {
+            opacity: 0.6;
+        }
+        .saved-badge {
+            position: absolute;
+            top: 2px;
+            left: 2px;
+            background: rgba(100,100,100,0.7);
+            color: white;
+            font-size: 7px;
+            padding: 2px 4px;
+            border-radius: 3px;
+            z-index: 20;
+        }
+
         /* ---- PRINT STYLES ---- */
         @media print {
             body {
@@ -636,6 +657,8 @@
         // ===== Backend API Configuration =====
         const API_BASE = 'http://localhost:3000/api';
         let currentEntryId = null;
+        let savedData = {}; // Tracks data loaded from database
+        let savedPhotos = { main: false, extras: [false, false, false, false] };
         
         // Field IDs to save (without _print suffix)
         const fieldIds = [
@@ -696,17 +719,27 @@
         
         // Load data into form
         function loadFormData(data) {
+            // Store what was loaded from database
+            savedData = {};
+            savedPhotos = { main: false, extras: [false, false, false, false] };
+            
             fieldIds.forEach(id => {
                 const el = document.getElementById(id);
                 const printEl = document.getElementById(id + '_print');
+                const value = data[id] || '';
+                
                 if (el) {
-                    el.innerHTML = data[id] || '';
+                    el.innerHTML = value;
+                    // Mark as saved if has data
+                    if (value.trim()) {
+                        el.classList.add('saved-data');
+                        savedData[id] = value;
+                    }
                 }
                 if (printEl) {
-                    printEl.innerHTML = data[id] || '';
+                    printEl.innerHTML = value;
                 }
             });
-            
             // Load main photo
             if (data.mainPhoto && data.mainPhoto.startsWith('data:')) {
                 const img1 = document.getElementById('main-pic-1');
@@ -714,8 +747,12 @@
                 img1.src = data.mainPhoto;
                 img2.src = data.mainPhoto;
                 document.getElementById('main-photo-1').classList.add('has-photo');
+                        document.getElementById('main-photo-1').classList.remove('saved-photo');
+                        savedPhotos.main = false; // New photo, not saved
                 document.getElementById('main-photo-2').classList.add('has-photo');
                 document.querySelectorAll('#main-photo-1 .photo-placeholder, #main-photo-2 .photo-placeholder').forEach(p => p.style.display = 'none');
+                document.getElementById('main-photo-1').classList.add('saved-photo');
+                savedPhotos.main = true;
                 img1.onload = () => fitPhotoToContainer('main-pic-1');
             }
             
@@ -730,6 +767,8 @@
                         img1.parentElement.querySelector('.photo-placeholder').style.display = 'none';
                         img2.parentElement.querySelector('.photo-placeholder').style.display = 'none';
                         img1.onload = () => fitPhotoToContainer(`extra-${i+1}-page1`);
+                        img1.parentElement.classList.add('saved-photo');
+                        savedPhotos.extras[i] = true;
                     }
                 });
             }
@@ -793,12 +832,17 @@
             }
             
             currentEntryId = null;
+
+            // Reset saved data tracking
+            savedData = {};
+            savedPhotos = { main: false, extras: [false, false, false, false] };
             
             // Clear all fields
             fieldIds.forEach(id => {
                 const el = document.getElementById(id);
                 const printEl = document.getElementById(id + '_print');
                 if (el) el.innerHTML = '';
+                if (el) el.classList.remove('saved-data');
                 if (printEl) printEl.innerHTML = '';
             });
             
@@ -1034,6 +1078,8 @@
             // Add input listener to sync on typing
             editableFields.forEach(field => {
                 field.addEventListener('input', (event) => {
+                    // When user types, remove saved-data class (it's now new/changed data)
+                    event.target.classList.remove('saved-data');
                     const printFieldId = event.target.id + '_print';
                     const printField = document.getElementById(printFieldId);
                     if (printField) {
@@ -1058,6 +1104,8 @@
                             fitPhotoToContainer('main-pic-1');
                         };
                         document.getElementById('main-photo-1').classList.add('has-photo');
+                        document.getElementById('main-photo-1').classList.remove('saved-photo');
+                        savedPhotos.main = false; // New photo, not saved
                         document.getElementById('main-photo-2').classList.add('has-photo');
                         document.querySelectorAll('#main-photo-1 .photo-placeholder, #main-photo-2 .photo-placeholder').forEach(p => p.style.display = 'none');
                     }
@@ -1178,20 +1226,42 @@
             }
             
             if (pageNumber === 2) {
-                // For overlay printing: hide empty values but KEEP the space
-                // Only hide the text content, not the row itself
+                // For overlay printing: hide SAVED (old) values - only print NEW data
+                // This allows you to load existing entry, add new fields, and print only the new ones
+                
+                // Hide saved text fields (data that was loaded from database)
                 document.querySelectorAll('#page2 .data-item').forEach(row => {
                     const valEl = row.querySelector('.value');
-                    const text = (valEl?.textContent || '').trim();
-                    if (!text) {
-                        // Make the value invisible but keep space
+                    const fieldId = valEl?.id?.replace('_print', '');
+                    const currentText = (valEl?.textContent || '').trim();
+                    
+                    // Hide if: empty OR was saved (unchanged from database)
+                    const wasSaved = savedData[fieldId] !== undefined;
+                    const isUnchanged = wasSaved && savedData[fieldId].replace(/<[^>]*>/g, '').trim() === currentText;
+                    
+                    if (!currentText || isUnchanged) {
                         valEl.dataset._preVisibility = valEl.style.visibility || '';
                         valEl.style.visibility = 'hidden';
                         toRestore.push({ el: valEl, type: 'visibility' });
                     }
                 });
+                
+                // Hide saved photos (photos that were loaded from database)
+                if (savedPhotos.main) {
+                    const mainImg2 = document.getElementById('main-pic-2');
+                    mainImg2.dataset._preVisibility = mainImg2.style.visibility || '';
+                    mainImg2.style.visibility = 'hidden';
+                    toRestore.push({ el: mainImg2, type: 'visibility' });
+                }
+                savedPhotos.extras.forEach((wasSaved, idx) => {
+                    if (wasSaved) {
+                        const img = document.getElementById('extra-' + (idx+1) + '-page2');
+                        img.dataset._preVisibility = img.style.visibility || '';
+                        img.style.visibility = 'hidden';
+                        toRestore.push({ el: img, type: 'visibility' });
+                    }
+                });
             }
-
             window.print();
 
             setTimeout(() => {
